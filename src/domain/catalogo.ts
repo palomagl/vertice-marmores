@@ -27,8 +27,6 @@ interface Def {
 
 const DEFS: Def[] = [
   // ---------------- Granitos ----------------
-  { id: "granito_branco_paraiso", nome: "Branco Paraíso", familia: "Granito", precoM2: 480, custoM2: 300, chapa: [3200, 1900],
-    params: { estilo: "granito", base: "#e9e5dd", base2: "#d8cfc0", veio: "#8a7f6b", intensidade: 0.9 } },
   { id: "granito_branco_dallas", nome: "Branco Dallas", familia: "Granito", precoM2: 410, custoM2: 260, chapa: [3200, 1900],
     params: { estilo: "granito", base: "#dedbd2", base2: "#c9c3b4", veio: "#7d7460", intensidade: 1 } },
   { id: "granito_branco_itaunas", nome: "Branco Itaúnas", familia: "Granito", precoM2: 430, custoM2: 270, chapa: [3200, 1900],

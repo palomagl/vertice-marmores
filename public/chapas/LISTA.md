@@ -13,11 +13,10 @@ Assim que o arquivo estiver na pasta, recarregue o app: a pedra passa a aparecer
 com a foto real na lista e na peça 3D (esticada na peça inteira). Sem foto, ela
 usa a textura desenhada por código.
 
-## Granito (12)
+## Granito (11)
 
 | Arquivo | Pedra | Buscar por |
 |---|---|---|
-| `granito_branco_paraiso.jpg` | Branco Paraíso | granito branco paraíso chapa |
 | `granito_branco_dallas.jpg` | Branco Dallas | granito branco dallas chapa |
 | `granito_branco_itaunas.jpg` | Branco Itaúnas | granito branco itaúnas chapa |
 | `granito_branco_siena.jpg` | Branco Siena | granito branco siena chapa |
