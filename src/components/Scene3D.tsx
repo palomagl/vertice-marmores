@@ -209,6 +209,14 @@ function Bancada({
 }
 
 export function Scene3D({ projeto, params, materialId, apresentacao = false }: Props) {
+  // piso desce quando a ilha tem laterais até o chão
+  const alturaSaia = Math.max(
+    0,
+    ...projeto.complementos.filter((c) => c.tipo === "saia").map((c) => c.altura),
+  );
+  const ilha = alturaSaia > 300;
+  const pisoY = ilha ? -alturaSaia / MM + 0.01 : -0.02;
+
   return (
     <Canvas
       shadows
@@ -232,9 +240,9 @@ export function Scene3D({ projeto, params, materialId, apresentacao = false }: P
       </Bounds>
 
       <ContactShadows
-        position={[0, -0.02, 0]}
-        opacity={0.42}
-        scale={10}
+        position={[0, pisoY, 0]}
+        opacity={ilha ? 0.5 : 0.42}
+        scale={ilha ? 14 : 10}
         blur={2.4}
         far={2}
         resolution={1024}

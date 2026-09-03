@@ -205,9 +205,9 @@ export function PainelComponentes() {
         })}
       </section>
 
-      {/* ---- Saia ---- */}
+      {/* ---- Saia / painel lateral ---- */}
       <section className="painel-l__grupo">
-        <span className="painel-l__titulo">Saia</span>
+        <span className="painel-l__titulo">Saia / painel lateral</span>
         {LADOS_SAIA.map(({ lado, label }) => {
           const c = aba("saia", lado);
           return (
@@ -217,7 +217,8 @@ export function PainelComponentes() {
                 valueMm={c?.altura ?? 0}
                 onChangeMm={(mm) => setAbaLado("saia", lado, mm)}
                 minMm={0}
-                maxMm={250}
+                maxMm={1000}
+                stepMm={10}
               />
               {c && (
                 <label className="check check--sm">

@@ -10,8 +10,8 @@ import type {
   Recorte,
 } from "@/domain/project";
 import {
-  DEFAULTS,
   PRESETS,
+  montarAmbiente,
   novoId,
   projetoNovo,
   trechosPadrao,
@@ -154,17 +154,20 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
 
     aplicarAmbiente: (ambiente) =>
       alterar((p) => {
-        const preset = PRESETS[ambiente];
+        const { formato, trechos, complementos, recortes } = montarAmbiente(
+          ambiente,
+          p.bancada.espessura,
+          p.bancada.alturaInstalacao,
+        );
         p.ambiente = ambiente;
-        p.bancada.formato = preset.formato;
-        p.bancada.trechos = trechosPadrao(preset.formato, preset.profundidade);
-        p.complementos = p.complementos.filter((c) => c.tipo !== "frontao" && c.tipo !== "saia");
-        if (preset.comFrontao) {
-          p.complementos.push({ id: novoId("cmp"), tipo: "frontao", altura: DEFAULTS.frontao, lado: "traseiro", trechos: [] });
-        }
-        if (preset.comSaia) {
-          p.complementos.push({ id: novoId("cmp"), tipo: "saia", altura: DEFAULTS.saia, lado: "frontal", trechos: [] });
-        }
+        p.bancada.formato = formato;
+        p.bancada.trechos = trechos;
+        // troca frontão/saia/recortes pelos do ambiente; mantém extras que o vendedor tenha adicionado à mão
+        p.complementos = [
+          ...p.complementos.filter((c) => c.tipo !== "frontao" && c.tipo !== "saia"),
+          ...complementos,
+        ];
+        p.recortes = recortes;
       }),
 
     setNome: (nome) => alterar((p) => void (p.nome = nome)),

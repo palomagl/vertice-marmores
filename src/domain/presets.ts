@@ -2,8 +2,13 @@ import type {
   Ambiente,
   AcabamentoBorda,
   Bancada,
+  CantoAreaMolhada,
+  Complemento,
   Formato,
+  Lado,
   Projeto,
+  Recorte,
+  TipoRecorte,
 } from "./project";
 
 /** Defaults que economizam digitação (especificação, seção 4). Tudo em mm. */
@@ -19,7 +24,7 @@ export const DEFAULTS = {
 
 export const ACABAMENTO_PADRAO: AcabamentoBorda = {
   tipo: "reto",
-  precoMetroLinear: 4500, // centavos? não — R$. Editável no admin.
+  precoMetroLinear: 4500,
 };
 
 /** Rótulos de formato — nomenclatura do mercado (seção 4). */
@@ -40,70 +45,136 @@ export const AMBIENTE_LABEL: Record<Ambiente, string> = {
   lavanderia: "Lavanderia",
 };
 
+interface RecorteSeed {
+  tipo: TipoRecorte;
+  largura: number;
+  profundidade: number;
+  diametro?: number;
+  canto?: CantoAreaMolhada;
+  modelo?: string;
+  centralizada?: boolean;
+  distanciaInicio?: number;
+  recuoFrontal?: number;
+}
+
 interface PresetAmbiente {
   formato: Formato;
   profundidade: number;
-  /** todas as bordas acabadas (ilha) */
+  /** todas as bordas acabadas (ilha, balcão) */
   todasBordasAcabadas: boolean;
-  /** já nasce com frontão */
-  comFrontao: boolean;
-  /** já nasce com saia nos lados */
-  comSaia: boolean;
+  /** lados que nascem com frontão */
+  frontaoLados: Lado[];
+  frontaoAltura: number;
+  /** lados que nascem com saia */
+  saiaLados: Lado[];
+  /** altura da saia em mm, ou "piso" = painel até o chão (ilha) */
+  saiaAltura: number | "piso";
+  /** recortes que já vêm no ambiente */
+  recortes: RecorteSeed[];
   descricao: string;
 }
 
+const CUBA_COZINHA: RecorteSeed = {
+  tipo: "cuba_embutir",
+  modelo: "cuba_inox_56x34",
+  largura: 560,
+  profundidade: 340,
+  canto: "retangular",
+  centralizada: true,
+};
+
 /**
- * "Ambientes" é a sacada que vale roubar (seção 4.1):
- * o vendedor escolhe o tipo de serviço e o app carrega os defaults certos.
+ * "Ambientes" é a sacada que vale roubar (seção 4.1): o vendedor escolhe o tipo
+ * de serviço e o app já monta o FORMATO certo — pia com furo, ilha com laterais
+ * até o piso, etc.
  */
 export const PRESETS: Record<Ambiente, PresetAmbiente> = {
   pia: {
     formato: "linear",
     profundidade: DEFAULTS.profundidadeCozinha,
     todasBordasAcabadas: false,
-    comFrontao: true,
-    comSaia: false,
-    descricao: "Pia de cozinha encostada na parede, com frontão.",
+    frontaoLados: ["traseiro"],
+    frontaoAltura: DEFAULTS.frontao,
+    saiaLados: [],
+    saiaAltura: DEFAULTS.saia,
+    recortes: [{ ...CUBA_COZINHA, centralizada: false, distanciaInicio: 350 }],
+    descricao: "Pia de cozinha na parede: cuba e frontão.",
   },
   gourmet: {
     formato: "L",
     profundidade: DEFAULTS.profundidadeCozinha,
     todasBordasAcabadas: false,
-    comFrontao: true,
-    comSaia: false,
-    descricao: "Bancada gourmet em L, com frontão.",
+    frontaoLados: ["traseiro"],
+    frontaoAltura: DEFAULTS.frontao,
+    saiaLados: [],
+    saiaAltura: DEFAULTS.saia,
+    recortes: [
+      { ...CUBA_COZINHA, centralizada: false, distanciaInicio: 300 },
+      { tipo: "cooktop", largura: 580, profundidade: 500, centralizada: false, distanciaInicio: 1200 },
+    ],
+    descricao: "Bancada gourmet em L, com cuba, cooktop e frontão.",
   },
   banheiro: {
     formato: "linear",
     profundidade: DEFAULTS.profundidadeBanheiro,
     todasBordasAcabadas: false,
-    comFrontao: false,
-    comSaia: true,
-    descricao: "Bancada de banheiro, 55 cm, com saia frontal.",
+    frontaoLados: [],
+    frontaoAltura: DEFAULTS.frontao,
+    saiaLados: ["frontal"],
+    saiaAltura: 120,
+    recortes: [
+      {
+        tipo: "cuba_embutir",
+        modelo: "cuba_inox_46x30",
+        largura: 460,
+        profundidade: 300,
+        canto: "arredondado",
+        centralizada: true,
+      },
+    ],
+    descricao: "Bancada de banheiro, 55 cm, com cuba e saia frontal.",
   },
   ilha: {
     formato: "linear",
     profundidade: 900,
     todasBordasAcabadas: true,
-    comFrontao: false,
-    comSaia: true,
-    descricao: "Ilha central: 4 bordas acabadas e saia nos lados.",
+    frontaoLados: [],
+    frontaoAltura: DEFAULTS.frontao,
+    saiaLados: ["esquerdo", "direito"],
+    saiaAltura: "piso",
+    recortes: [{ ...CUBA_COZINHA, centralizada: true }],
+    descricao: "Ilha central: laterais em pedra até o piso.",
   },
   balcao: {
     formato: "linear",
     profundidade: 400,
     todasBordasAcabadas: true,
-    comFrontao: false,
-    comSaia: false,
+    frontaoLados: [],
+    frontaoAltura: DEFAULTS.frontao,
+    saiaLados: [],
+    saiaAltura: DEFAULTS.saia,
+    recortes: [],
     descricao: "Balcão / bancada de apoio, bordas acabadas.",
   },
   lavanderia: {
     formato: "linear",
     profundidade: 550,
     todasBordasAcabadas: false,
-    comFrontao: true,
-    comSaia: false,
-    descricao: "Bancada de lavanderia sobre o tanque, com frontão.",
+    frontaoLados: ["traseiro"],
+    frontaoAltura: DEFAULTS.frontao,
+    saiaLados: [],
+    saiaAltura: DEFAULTS.saia,
+    recortes: [
+      {
+        tipo: "cuba_embutir",
+        modelo: "cuba_inox_50x40",
+        largura: 500,
+        profundidade: 400,
+        canto: "retangular",
+        centralizada: true,
+      },
+    ],
+    descricao: "Bancada de lavanderia sobre o tanque, com cuba e frontão.",
   },
 };
 
@@ -133,10 +204,74 @@ function novoId(prefixo: string): string {
   return `${prefixo}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/**
+ * Monta bancada + complementos + recortes de um ambiente. Usado tanto ao criar
+ * projeto novo quanto ao trocar de ambiente no configurador.
+ */
+export function montarAmbiente(
+  ambiente: Ambiente,
+  espessura: number,
+  alturaInstalacao: number,
+): {
+  formato: Formato;
+  trechos: Bancada["trechos"];
+  complementos: Complemento[];
+  recortes: Recorte[];
+} {
+  const preset = PRESETS[ambiente];
+  const trechos = trechosPadrao(preset.formato, preset.profundidade);
+
+  const alturaSaia =
+    preset.saiaAltura === "piso"
+      ? Math.max(alturaInstalacao - espessura, 300)
+      : preset.saiaAltura;
+
+  const complementos: Complemento[] = [
+    ...preset.frontaoLados.map((lado) => ({
+      id: novoId("cmp"),
+      tipo: "frontao" as const,
+      altura: preset.frontaoAltura,
+      lado,
+      trechos: [],
+    })),
+    ...preset.saiaLados.map((lado) => ({
+      id: novoId("cmp"),
+      tipo: "saia" as const,
+      altura: alturaSaia,
+      lado,
+      trechos: [],
+    })),
+  ];
+
+  const recortes: Recorte[] = preset.recortes.map((s) => ({
+    id: novoId("rec"),
+    tipo: s.tipo,
+    modelo: s.modelo,
+    largura: s.largura,
+    profundidade: s.profundidade,
+    diametro: s.diametro,
+    canto: s.canto,
+    posicao: {
+      trecho: 0,
+      distanciaInicio: s.distanciaInicio ?? 0,
+      centralizada: s.centralizada ?? false,
+      recuoFrontal: s.recuoFrontal,
+    },
+  }));
+
+  return { formato: preset.formato, trechos, complementos, recortes };
+}
+
 /** Cria um Projeto em branco já com os defaults do ambiente escolhido. */
 export function projetoNovo(ambiente: Ambiente = "pia"): Projeto {
-  const preset = PRESETS[ambiente];
   const agora = new Date().toISOString();
+  const espessura = DEFAULTS.espessura;
+  const alturaInstalacao = DEFAULTS.alturaInstalacao;
+  const { formato, trechos, complementos, recortes } = montarAmbiente(
+    ambiente,
+    espessura,
+    alturaInstalacao,
+  );
   return {
     id: novoId("proj"),
     nome: "",
@@ -144,22 +279,10 @@ export function projetoNovo(ambiente: Ambiente = "pia"): Projeto {
     cliente: { nome: "", telefone: "" },
     criadoEm: agora,
     atualizadoEm: agora,
-    bancada: {
-      formato: preset.formato,
-      trechos: trechosPadrao(preset.formato, preset.profundidade),
-      espessura: DEFAULTS.espessura,
-      alturaInstalacao: DEFAULTS.alturaInstalacao,
-    },
+    bancada: { formato, trechos, espessura, alturaInstalacao },
     material: null,
-    recortes: [],
-    complementos: [
-      ...(preset.comFrontao
-        ? [{ id: novoId("cmp"), tipo: "frontao" as const, altura: DEFAULTS.frontao, lado: "traseiro" as const, trechos: [] }]
-        : []),
-      ...(preset.comSaia
-        ? [{ id: novoId("cmp"), tipo: "saia" as const, altura: DEFAULTS.saia, lado: "frontal" as const, trechos: [] }]
-        : []),
-    ],
+    recortes,
+    complementos,
     acabamentoBorda: { ...ACABAMENTO_PADRAO },
     sync: "local",
   };
