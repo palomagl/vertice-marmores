@@ -9,6 +9,7 @@ import {
   bbox,
   bordaAcabadaMm,
   contornoBancada,
+  segmentosDoComplemento,
 } from "./geometry";
 import { PRESETS } from "./presets";
 import type { Projeto } from "./project";
@@ -95,21 +96,22 @@ export function calcularOrcamento(
     });
   }
 
-  // 5. complementos (frontão, saia, rodabanca...) — R$/m linear × comprimento dos trechos
+  // 5. complementos (frontão, saia, rodabanca...) — R$/m linear × comprimento da borda
   for (const c of projeto.complementos) {
     const precoM = tabela.complemento[c.tipo] ?? 0;
     if (precoM <= 0) continue;
-    const compMm = c.trechos.reduce(
-      (acc, ti) => acc + (projeto.bancada.trechos[ti]?.comprimento ?? 0),
-      0,
-    );
+    let compMm = segmentosDoComplemento(segmentos, c).reduce((acc, s) => acc + s.comprimento, 0);
+    if (compMm <= 0 && c.trechos.length) {
+      compMm = c.trechos.reduce((acc, ti) => acc + (projeto.bancada.trechos[ti]?.comprimento ?? 0), 0);
+    }
     const compM = compMm / 1000;
     if (compM <= 0) continue;
+    const reforco = c.reforco ? 1.25 : 1;
     itens.push({
       chave: `complemento_${c.id}`,
-      descricao: rotuloComplemento(c.tipo),
-      detalhe: `${compM.toFixed(2)} m · altura ${Math.round(c.altura / 10)} cm`,
-      valor: arred(compM * precoM),
+      descricao: `${rotuloComplemento(c.tipo)}${c.lado ? ` — ${c.lado}` : ""}`,
+      detalhe: `${compM.toFixed(2)} m · altura ${Math.round(c.altura / 10)} cm${c.reforco ? " · reforçada" : ""}`,
+      valor: arred(compM * precoM * reforco),
     });
   }
 

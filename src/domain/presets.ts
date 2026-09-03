@@ -37,6 +37,7 @@ export const AMBIENTE_LABEL: Record<Ambiente, string> = {
   banheiro: "Banheiro",
   ilha: "Ilha",
   balcao: "Balcão",
+  lavanderia: "Lavanderia",
 };
 
 interface PresetAmbiente {
@@ -96,6 +97,14 @@ export const PRESETS: Record<Ambiente, PresetAmbiente> = {
     comSaia: false,
     descricao: "Balcão / bancada de apoio, bordas acabadas.",
   },
+  lavanderia: {
+    formato: "linear",
+    profundidade: 550,
+    todasBordasAcabadas: false,
+    comFrontao: true,
+    comSaia: false,
+    descricao: "Bancada de lavanderia sobre o tanque, com frontão.",
+  },
 };
 
 /** Trechos default para cada formato, usando a profundidade do preset. */
@@ -143,9 +152,14 @@ export function projetoNovo(ambiente: Ambiente = "pia"): Projeto {
     },
     material: null,
     recortes: [],
-    complementos: preset.comFrontao
-      ? [{ id: novoId("cmp"), tipo: "frontao", altura: DEFAULTS.frontao, trechos: [0] }]
-      : [],
+    complementos: [
+      ...(preset.comFrontao
+        ? [{ id: novoId("cmp"), tipo: "frontao" as const, altura: DEFAULTS.frontao, lado: "traseiro" as const, trechos: [] }]
+        : []),
+      ...(preset.comSaia
+        ? [{ id: novoId("cmp"), tipo: "saia" as const, altura: DEFAULTS.saia, lado: "frontal" as const, trechos: [] }]
+        : []),
+    ],
     acabamentoBorda: { ...ACABAMENTO_PADRAO },
     sync: "local",
   };

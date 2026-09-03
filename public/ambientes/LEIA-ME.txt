@@ -1,0 +1,7 @@
+Fotos / renders dos ambientes vão aqui.
+
+Nome do arquivo = id do ambiente:
+  pia.jpg  gourmet.jpg  banheiro.jpg  ilha.jpg  balcao.jpg  lavanderia.jpg
+
+Enquanto o arquivo não existe, o card usa um gradiente de placeholder.
+Formato sugerido: 800 x 500 px, JPG, foco na bancada.

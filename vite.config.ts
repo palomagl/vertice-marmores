@@ -10,15 +10,17 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       workbox: {
-        // Cache das fotos de chapa e do app shell para uso offline na casa do cliente.
-        globPatterns: ["**/*.{js,css,html,svg,png,webp,woff2}"],
+        // App shell no precache; imagens grandes (chapas/ambientes) via runtime cache.
+        globPatterns: ["**/*.{js,css,html,svg,woff2}"],
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith("/chapas/"),
+            urlPattern: ({ url }) =>
+              url.pathname.startsWith("/chapas/") ||
+              url.pathname.startsWith("/ambientes/"),
             handler: "CacheFirst",
             options: {
-              cacheName: "texturas-chapas",
-              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheName: "imagens-pedras",
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
         ],

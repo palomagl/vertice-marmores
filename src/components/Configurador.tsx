@@ -5,7 +5,7 @@
  */
 import { lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { MATERIAIS } from "@/domain/catalogo";
+import { materialPorId } from "@/domain/catalogo";
 import { calcularOrcamento } from "@/domain/quote";
 import { brl } from "@/domain/units";
 import { useProjectStore } from "@/store/projectStore";
@@ -19,10 +19,6 @@ const Scene3D = lazy(() =>
   import("./Scene3D").then((m) => ({ default: m.Scene3D })),
 );
 
-function corDoMaterial(id: string | undefined): string {
-  return MATERIAIS.find((m) => m.id === id)?.corFallback ?? "#dedede";
-}
-
 export function Configurador() {
   const projeto = useProjectStore((s) => s.projeto);
   const tabela = useProjectStore((s) => s.tabela);
@@ -35,12 +31,13 @@ export function Configurador() {
 
   const [menu, setMenu] = useState(false);
   const [preco, setPreco] = useState(false);
-  const cor = corDoMaterial(projeto.material?.id ?? undefined);
+  const mat = materialPorId(projeto.material?.id ?? undefined);
+  const cor = mat?.params.base ?? "#dedede";
   const total = useMemo(
     () => calcularOrcamento(projeto, tabela).total,
     [projeto, tabela],
   );
-  const nomeMaterial = projeto.material?.nome ?? "Sem material";
+  const nomeMaterial = mat?.nome ?? "Sem material";
 
   return (
     <div className={`simu ${apresentacao ? "simu--apresentacao" : ""}`}>
@@ -92,7 +89,7 @@ export function Configurador() {
 
         {modo === "3d" ? (
           <Suspense fallback={<div className="simu__loading">Carregando 3D…</div>}>
-            <Scene3D projeto={projeto} cor={cor} apresentacao={apresentacao} />
+            <Scene3D projeto={projeto} params={mat?.params ?? null} apresentacao={apresentacao} />
           </Suspense>
         ) : (
           <Drawing2D projeto={projeto} cor={cor} className="simu__svg" />

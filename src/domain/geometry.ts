@@ -5,7 +5,7 @@
  * Sistema de coordenadas: milímetros, convenção matemática (x direita, y "para o fundo").
  * A frente da bancada fica em y = 0. A parede fica no y maior.
  */
-import type { Bancada, Complemento, Projeto, Recorte } from "./project";
+import type { Bancada, Complemento, Lado, Projeto, Recorte } from "./project";
 
 export interface Ponto {
   x: number;
@@ -20,6 +20,8 @@ export interface Segmento {
   trecho: number;
   /** true = encostado na parede, não leva acabamento de borda */
   parede: boolean;
+  /** lado da peça, para posicionar frontão / saia */
+  lado: Lado | null;
 }
 
 export interface BBox {
@@ -47,6 +49,7 @@ function segmentos(
   pontos: Ponto[],
   paredeMask: boolean[],
   trechoMask: number[],
+  ladoMask: (Lado | null)[],
 ): Segmento[] {
   return pontos.map((a, i) => {
     const b = pontos[(i + 1) % pontos.length];
@@ -56,6 +59,7 @@ function segmentos(
       comprimento: dist(a, b),
       parede: paredeMask[i] ?? false,
       trecho: trechoMask[i] ?? -1,
+      lado: ladoMask[i] ?? null,
     };
   });
 }
@@ -88,7 +92,10 @@ export function contornoBancada(bancada: Bancada): {
       // frente A, ponta A, PAREDE A, PAREDE B, ponta B, frente B
       const parede = [false, false, true, true, false, false];
       const trecho = [0, 0, 0, 1, 1, 1];
-      return { pontos, segmentos: segmentos(pontos, parede, trecho) };
+      const lado: (Lado | null)[] = [
+        "frontal", "direito", "traseiro", "traseiro", "esquerdo", "frontal",
+      ];
+      return { pontos, segmentos: segmentos(pontos, parede, trecho, lado) };
     }
 
     case "U": {
@@ -110,7 +117,10 @@ export function contornoBancada(bancada: Bancada): {
       ];
       const parede = [false, false, false, true, true, true, false, false];
       const trecho = [1, 2, 2, 2, 1, 0, 0, 0];
-      return { pontos, segmentos: segmentos(pontos, parede, trecho) };
+      const lado: (Lado | null)[] = [
+        "frontal", "direito", "direito", "traseiro", "traseiro", "traseiro", "esquerdo", "esquerdo",
+      ];
+      return { pontos, segmentos: segmentos(pontos, parede, trecho, lado) };
     }
 
     case "linear":
@@ -127,7 +137,8 @@ export function contornoBancada(bancada: Bancada): {
       // frente, ponta, PAREDE (fundo), ponta
       const parede = [false, false, true, false];
       const trecho = [0, 0, 0, 0];
-      return { pontos, segmentos: segmentos(pontos, parede, trecho) };
+      const lado: (Lado | null)[] = ["frontal", "direito", "traseiro", "esquerdo"];
+      return { pontos, segmentos: segmentos(pontos, parede, trecho, lado) };
     }
   }
 }
@@ -168,11 +179,12 @@ export function bordaAcabadaMm(
     .reduce((acc, s) => acc + s.comprimento, 0);
 }
 
-/** Segmentos que recebem um complemento, pela regra do tipo. */
+/** Segmentos que recebem um complemento. Usa `lado` quando definido. */
 export function segmentosDoComplemento(
   segs: Segmento[],
   comp: Complemento,
 ): Segmento[] {
+  if (comp.lado) return segs.filter((s) => s.lado === comp.lado);
   const naParede = comp.tipo === "frontao" || comp.tipo === "rodabanca";
   return segs.filter(
     (s) => s.parede === naParede && comp.trechos.includes(s.trecho),

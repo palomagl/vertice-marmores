@@ -2,10 +2,14 @@ Fotos das chapas reais do estoque da DF vão aqui.
 
 Requisitos (especificação, seção 6):
 - Foto boa resolução de cada chapa que está no galpão HOJE
-- Nome do arquivo = id do material em src/domain/catalogo.ts
-  ex: granito_branco_paraiso.jpg  ->  /chapas/branco-paraiso.jpg
+- Nome do arquivo = id do material em src/domain/catalogo.ts + ".jpg"
+  ex: granito_branco_paraiso.jpg  ->  /chapas/granito_branco_paraiso.jpg
+      marmore_carrara.jpg         ->  /chapas/marmore_carrara.jpg
 - A textura é mapeada ESTICADA sobre a peça inteira, nunca em tile/repeat
   (padrão repetido denuncia o app na hora)
+
+Enquanto não há foto, a amostra e o 3D usam uma textura procedural
+(src/domain/stoneTexture.ts). É placeholder — não substitui a foto real.
 
 Este é o item de prazo mais longo do projeto e não depende do dev.
 Pedir para a marmoraria fotografar o estoque o quanto antes.

@@ -88,6 +88,44 @@ export function SliderCm({
   );
 }
 
+interface SliderMmProps {
+  label: string;
+  valueMm: number;
+  onChangeMm: (mm: number) => void;
+  minMm?: number;
+  maxMm?: number;
+  stepMm?: number;
+  zeroLabel?: string;
+}
+
+/** Slider em mm mostrando cm; quando 0 mostra um rótulo ("sem"). */
+export function SliderMm({
+  label,
+  valueMm,
+  onChangeMm,
+  minMm = 0,
+  maxMm = 250,
+  stepMm = 5,
+  zeroLabel = "sem",
+}: SliderMmProps) {
+  return (
+    <div className="slider slider--sm">
+      <div className="slider__topo">
+        <span>{label}</span>
+        <strong>{valueMm > 0 ? `${Math.round(valueMm / 10)} cm` : zeroLabel}</strong>
+      </div>
+      <input
+        type="range"
+        min={minMm}
+        max={maxMm}
+        step={stepMm}
+        value={valueMm}
+        onChange={(e) => onChangeMm(Number(e.target.value))}
+      />
+    </div>
+  );
+}
+
 interface SegmentedProps<T extends string> {
   value: T;
   options: { value: T; label: string }[];

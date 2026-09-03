@@ -13,39 +13,29 @@ import {
   segmentosDoComplemento,
 } from "@/domain/geometry";
 import type { Projeto } from "@/domain/project";
+import { desenharPedra, type ParamsPedra } from "@/domain/stoneTexture";
 
 interface Props {
   projeto: Projeto;
-  cor?: string;
+  params?: ParamsPedra | null;
   apresentacao?: boolean;
 }
 
 const MM = 1000;
 
-/** Speckle de granito gerado em canvas. Placeholder — foto real entra depois. */
-function texturaGranito(cor: string): THREE.CanvasTexture {
-  const s = 512;
+const PADRAO: ParamsPedra = { estilo: "quartzo", base: "#dedede", veio: "#bcbcbc", intensidade: 0.5 };
+
+/** Textura de pedra procedural aplicada na peça inteira (UV esticado). */
+function texturaPedra(params: ParamsPedra): THREE.CanvasTexture {
+  const s = 1024;
   const c = document.createElement("canvas");
   c.width = c.height = s;
-  const ctx = c.getContext("2d")!;
-  ctx.fillStyle = cor;
-  ctx.fillRect(0, 0, s, s);
-  const base = new THREE.Color(cor);
-  for (let i = 0; i < 9000; i++) {
-    const x = Math.random() * s;
-    const y = Math.random() * s;
-    const r = Math.random() * 1.8 + 0.3;
-    const d = (Math.random() - 0.5) * 0.5;
-    const cc = base.clone().offsetHSL(0, 0, d);
-    ctx.fillStyle = `rgba(${(cc.r * 255) | 0},${(cc.g * 255) | 0},${(cc.b * 255) | 0},0.5)`;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  const ctx = c.getContext("2d");
+  if (ctx) desenharPedra(ctx, s, params);
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(3, 3);
-  tex.anisotropy = 4;
+  tex.repeat.set(1.05, 1.05);
+  tex.anisotropy = 8;
   return tex;
 }
 
@@ -132,10 +122,14 @@ function useComplementos(projeto: Projeto): Caixa[] {
   }, [projeto]);
 }
 
-function Bancada({ projeto, cor }: { projeto: Projeto; cor: string }) {
+function Bancada({ projeto, params }: { projeto: Projeto; params: ParamsPedra }) {
   const slab = useSlab(projeto);
   const comps = useComplementos(projeto);
-  const tex = useMemo(() => texturaGranito(cor), [cor]);
+  const tex = useMemo(
+    () => texturaPedra(params),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [params.estilo, params.base, params.base2, params.veio, params.intensidade],
+  );
 
   return (
     <Center disableY>
@@ -154,7 +148,7 @@ function Bancada({ projeto, cor }: { projeto: Projeto; cor: string }) {
   );
 }
 
-export function Scene3D({ projeto, cor = "#dedede", apresentacao = false }: Props) {
+export function Scene3D({ projeto, params, apresentacao = false }: Props) {
   return (
     <Canvas
       shadows
@@ -174,7 +168,7 @@ export function Scene3D({ projeto, cor = "#dedede", apresentacao = false }: Prop
       <directionalLight position={[-4, 3, -3]} intensity={0.35} />
 
       <Bounds fit clip observe margin={1.25}>
-        <Bancada projeto={projeto} cor={cor} />
+        <Bancada projeto={projeto} params={params ?? PADRAO} />
       </Bounds>
 
       <ContactShadows

@@ -4,6 +4,7 @@ import type {
   Ambiente,
   Complemento,
   Formato,
+  Lado,
   Material,
   Projeto,
   Recorte,
@@ -67,6 +68,9 @@ interface ProjectState {
   removeRecorte: (id: string) => void;
   addComplemento: (c: Omit<Complemento, "id">) => void;
   removeComplemento: (id: string) => void;
+  /** define a altura de um frontão/saia num lado (0 = remove) */
+  setAbaLado: (tipo: "frontao" | "saia", lado: Lado, alturaMm: number) => void;
+  setAbaReforco: (tipo: "frontao" | "saia", lado: Lado, reforco: boolean) => void;
 
   // admin
   setTabela: (patch: Partial<TabelaPrecos>) => void;
@@ -155,12 +159,11 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
         p.bancada.formato = preset.formato;
         p.bancada.trechos = trechosPadrao(preset.formato, preset.profundidade);
         p.complementos = p.complementos.filter((c) => c.tipo !== "frontao" && c.tipo !== "saia");
-        const todos = p.bancada.trechos.map((_, i) => i);
         if (preset.comFrontao) {
-          p.complementos.push({ id: novoId("cmp"), tipo: "frontao", altura: DEFAULTS.frontao, trechos: todos });
+          p.complementos.push({ id: novoId("cmp"), tipo: "frontao", altura: DEFAULTS.frontao, lado: "traseiro", trechos: [] });
         }
         if (preset.comSaia) {
-          p.complementos.push({ id: novoId("cmp"), tipo: "saia", altura: DEFAULTS.saia, trechos: todos });
+          p.complementos.push({ id: novoId("cmp"), tipo: "saia", altura: DEFAULTS.saia, lado: "frontal", trechos: [] });
         }
       }),
 
@@ -202,6 +205,24 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
     addComplemento: (c) => alterar((p) => void p.complementos.push({ ...c, id: novoId("cmp") })),
     removeComplemento: (id) =>
       alterar((p) => void (p.complementos = p.complementos.filter((c) => c.id !== id))),
+
+    setAbaLado: (tipo, lado, alturaMm) =>
+      alterar((p) => {
+        const i = p.complementos.findIndex((c) => c.tipo === tipo && c.lado === lado);
+        if (alturaMm <= 0) {
+          if (i >= 0) p.complementos.splice(i, 1);
+        } else if (i >= 0) {
+          p.complementos[i] = { ...p.complementos[i], altura: alturaMm };
+        } else {
+          p.complementos.push({ id: novoId("cmp"), tipo, lado, altura: alturaMm, trechos: [] });
+        }
+      }),
+
+    setAbaReforco: (tipo, lado, reforco) =>
+      alterar((p) => {
+        const i = p.complementos.findIndex((c) => c.tipo === tipo && c.lado === lado);
+        if (i >= 0) p.complementos[i] = { ...p.complementos[i], reforco };
+      }),
 
     setTabela: (patch) =>
       set((s) => {

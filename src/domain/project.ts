@@ -8,7 +8,13 @@
 
 export type Formato = "linear" | "L" | "P" | "U" | "personalizado";
 
-export type Ambiente = "pia" | "gourmet" | "banheiro" | "ilha" | "balcao";
+export type Ambiente =
+  | "pia"
+  | "gourmet"
+  | "banheiro"
+  | "ilha"
+  | "balcao"
+  | "lavanderia";
 
 /** Um segmento reto da bancada. Bancada de marmoraria é retilínea, 90°. */
 export interface Trecho {
@@ -86,12 +92,19 @@ export type TipoComplemento =
   | "soleira"
   | "pingadeira";
 
+/** Lado da bancada para posicionar frontão / saia. */
+export type Lado = "frontal" | "traseiro" | "esquerdo" | "direito";
+
 export interface Complemento {
   id: string;
   tipo: TipoComplemento;
   /** altura da aba, mm */
   altura: number;
-  /** índices dos trechos que recebem o complemento */
+  /** lado da peça (frontão/saia). Quando ausente, cai no comportamento por trecho. */
+  lado?: Lado;
+  /** reforço estrutural da aba */
+  reforco?: boolean;
+  /** índices dos trechos que recebem o complemento (quando não usa `lado`) */
   trechos: number[];
 }
 
