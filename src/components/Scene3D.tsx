@@ -3,11 +3,12 @@
  * Fundo claro, sombra de contato no chão, textura de granito procedural
  * (placeholder até as fotos reais das chapas). Frontão e saia como extrusões.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Bounds, Center, ContactShadows, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import {
+  bbox,
   contornoBancada,
   geometriaRecorte,
   segmentosDoComplemento,
@@ -18,6 +19,8 @@ import { desenharPedra, type ParamsPedra } from "@/domain/stoneTexture";
 interface Props {
   projeto: Projeto;
   params?: ParamsPedra | null;
+  /** id do material — se existir /chapas/<id>.jpg, usa a foto real */
+  materialId?: string | null;
   apresentacao?: boolean;
 }
 
@@ -25,7 +28,7 @@ const MM = 1000;
 
 const PADRAO: ParamsPedra = { estilo: "quartzo", base: "#dedede", veio: "#bcbcbc", intensidade: 0.5 };
 
-/** Textura de pedra procedural aplicada na peça inteira (UV esticado). */
+/** Textura de pedra procedural (o caller define o repeat). */
 function texturaPedra(params: ParamsPedra): THREE.CanvasTexture {
   const s = 1024;
   const c = document.createElement("canvas");
@@ -34,14 +37,57 @@ function texturaPedra(params: ParamsPedra): THREE.CanvasTexture {
   if (ctx) desenharPedra(ctx, s, params);
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(1.05, 1.05);
   tex.anisotropy = 8;
   return tex;
+}
+
+/**
+ * Textura da peça: foto real de /chapas/<id>.jpg quando existe (esticada na
+ * peça inteira), senão a procedural. Trocar o arquivo na pasta é suficiente.
+ */
+function usePedraMap(
+  params: ParamsPedra,
+  materialId: string | null | undefined,
+  larguraM: number,
+  alturaM: number,
+): THREE.Texture {
+  const procedural = useMemo(() => {
+    const t = texturaPedra(params);
+    // grão ~ constante no mundo real: repete a cada ~0.9 m
+    t.repeat.set(Math.max(larguraM / 0.9, 1), Math.max(alturaM / 0.9, 1));
+    return t;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.estilo, params.base, params.base2, params.veio, params.intensidade, larguraM, alturaM]);
+
+  const [foto, setFoto] = useState<THREE.Texture | null>(null);
+  useEffect(() => {
+    setFoto(null);
+    if (!materialId) return;
+    let vivo = true;
+    new THREE.TextureLoader().load(
+      `/chapas/${materialId}.jpg`,
+      (tex) => {
+        if (!vivo) return void tex.dispose();
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.anisotropy = 8;
+        setFoto(tex);
+      },
+      undefined,
+      () => {}, // sem foto -> fica na procedural
+    );
+    return () => {
+      vivo = false;
+    };
+  }, [materialId]);
+
+  return foto ?? procedural;
 }
 
 function useSlab(projeto: Projeto) {
   return useMemo(() => {
     const { pontos } = contornoBancada(projeto.bancada);
+    const caixa = bbox(pontos);
     const shape = new THREE.Shape();
     pontos.forEach((p, i) => {
       const x = p.x / MM;
@@ -74,8 +120,18 @@ function useSlab(projeto: Projeto) {
       depth: projeto.bancada.espessura / MM,
       bevelEnabled: false,
     });
+
+    // normaliza UV para 0..1 pela bbox da peça -> foto real estica na peça toda
+    const uv = geo.attributes.uv;
+    for (let i = 0; i < uv.count; i++) {
+      const u = (uv.getX(i) * MM - caixa.minX) / (caixa.largura || 1);
+      const v = (uv.getY(i) * MM - caixa.minY) / (caixa.altura || 1);
+      uv.setXY(i, u, v);
+    }
+    uv.needsUpdate = true;
+
     geo.rotateX(-Math.PI / 2);
-    return geo;
+    return { geo, larguraM: caixa.largura / MM, alturaM: caixa.altura / MM };
   }, [projeto]);
 }
 
@@ -122,19 +178,23 @@ function useComplementos(projeto: Projeto): Caixa[] {
   }, [projeto]);
 }
 
-function Bancada({ projeto, params }: { projeto: Projeto; params: ParamsPedra }) {
+function Bancada({
+  projeto,
+  params,
+  materialId,
+}: {
+  projeto: Projeto;
+  params: ParamsPedra;
+  materialId: string | null | undefined;
+}) {
   const slab = useSlab(projeto);
   const comps = useComplementos(projeto);
-  const tex = useMemo(
-    () => texturaPedra(params),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [params.estilo, params.base, params.base2, params.veio, params.intensidade],
-  );
+  const tex = usePedraMap(params, materialId, slab.larguraM, slab.alturaM);
 
   return (
     <Center disableY>
       <group>
-        <mesh geometry={slab} castShadow receiveShadow>
+        <mesh geometry={slab.geo} castShadow receiveShadow>
           <meshStandardMaterial map={tex} color="#ffffff" roughness={0.4} metalness={0.02} />
         </mesh>
         {comps.map((c) => (
@@ -148,7 +208,7 @@ function Bancada({ projeto, params }: { projeto: Projeto; params: ParamsPedra })
   );
 }
 
-export function Scene3D({ projeto, params, apresentacao = false }: Props) {
+export function Scene3D({ projeto, params, materialId, apresentacao = false }: Props) {
   return (
     <Canvas
       shadows
@@ -168,7 +228,7 @@ export function Scene3D({ projeto, params, apresentacao = false }: Props) {
       <directionalLight position={[-4, 3, -3]} intensity={0.35} />
 
       <Bounds fit clip observe margin={1.25}>
-        <Bancada projeto={projeto} params={params ?? PADRAO} />
+        <Bancada projeto={projeto} params={params ?? PADRAO} materialId={materialId} />
       </Bounds>
 
       <ContactShadows

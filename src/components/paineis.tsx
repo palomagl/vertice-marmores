@@ -78,7 +78,7 @@ export function PainelPedras() {
               >
                 <span
                   className="pedra-row__swatch"
-                  style={{ backgroundImage: `url(${m.swatch})` }}
+                  style={{ backgroundImage: `url(${m.texturaUrl}), url(${m.swatch})` }}
                 />
                 <span className="pedra-row__txt">
                   <strong>{m.nome}</strong>

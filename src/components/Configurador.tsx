@@ -89,7 +89,12 @@ export function Configurador() {
 
         {modo === "3d" ? (
           <Suspense fallback={<div className="simu__loading">Carregando 3D…</div>}>
-            <Scene3D projeto={projeto} params={mat?.params ?? null} apresentacao={apresentacao} />
+            <Scene3D
+              projeto={projeto}
+              params={mat?.params ?? null}
+              materialId={mat?.id ?? null}
+              apresentacao={apresentacao}
+            />
           </Suspense>
         ) : (
           <Drawing2D projeto={projeto} cor={cor} className="simu__svg" />
