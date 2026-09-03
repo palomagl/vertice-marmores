@@ -142,7 +142,7 @@ export function Drawing2D({ projeto, cor = "#d8d8d5", className }: Props) {
             />
           );
         }
-        if (r.tipo === "area_molhada" && r.canto === "oval") {
+        if (r.canto === "oval") {
           return (
             <ellipse
               key={i}

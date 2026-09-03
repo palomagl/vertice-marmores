@@ -4,15 +4,14 @@
  *    e cada recorte nos mínimos detalhes
  *  - direita (PainelPedras): catálogo de pedras por família, com amostra e preço
  */
-import { useState } from "react";
-import {
-  CANTO_AREA_MOLHADA_LABEL,
-  CUBAS,
-  FAMILIAS,
-  MATERIAIS,
-  type Familia,
-} from "@/domain/catalogo";
-import type { Lado, TipoAcabamentoBorda } from "@/domain/project";
+import { useEffect, useState } from "react";
+import { CUBAS, FAMILIAS, MATERIAIS, type Familia } from "@/domain/catalogo";
+import type {
+  Lado,
+  PosicaoRecorte,
+  Recorte,
+  TipoAcabamentoBorda,
+} from "@/domain/project";
 import { brl } from "@/domain/units";
 import { useProjectStore } from "@/store/projectStore";
 import { CampoCm, SliderCm, SliderMm } from "./campos";
@@ -110,12 +109,23 @@ export function PainelComponentes() {
   const setAbaReforco = useProjectStore((s) => s.setAbaReforco);
   const addRecorte = useProjectStore((s) => s.addRecorte);
   const removeRecorte = useProjectStore((s) => s.removeRecorte);
-  const updateRecorte = useProjectStore((s) => s.updateRecorte);
+
+  const [abertoRec, setAbertoRec] = useState<string | null>(null);
+  // abre automaticamente o último recorte adicionado
+  useEffect(() => {
+    setAbertoRec(recortes[recortes.length - 1]?.id ?? null);
+  }, [recortes.length]);
 
   const aba = (tipo: "frontao" | "saia", lado: Lado) =>
     complementos.find((c) => c.tipo === tipo && c.lado === lado);
 
   const areasMolhadas = recortes.filter((r) => r.tipo === "area_molhada");
+
+  // posição escalonada para novos recortes não empilharem
+  const prox = (base: number) => {
+    const limite = Math.max((trechos[0]?.comprimento ?? 2000) - 700, base);
+    return Math.min(base + recortes.length * 450, limite);
+  };
 
   return (
     <div className="painel-l">
@@ -236,7 +246,7 @@ export function PainelComponentes() {
                 largura: 1000,
                 profundidade: 450,
                 canto: "arredondado",
-                posicao: { trecho: 0, distanciaInicio: 0, centralizada: true },
+                posicao: { trecho: 0, distanciaInicio: prox(400), centralizada: false },
               })
             }
           >
@@ -250,7 +260,8 @@ export function PainelComponentes() {
                 modelo: CUBAS[0].id,
                 largura: CUBAS[0].largura,
                 profundidade: CUBAS[0].profundidade,
-                posicao: { trecho: 0, distanciaInicio: 500, centralizada: false },
+                canto: "retangular",
+                posicao: { trecho: 0, distanciaInicio: prox(200), centralizada: false },
               })
             }
           >
@@ -263,7 +274,7 @@ export function PainelComponentes() {
                 tipo: "cooktop",
                 largura: 580,
                 profundidade: 500,
-                posicao: { trecho: 0, distanciaInicio: 0, centralizada: true },
+                posicao: { trecho: 0, distanciaInicio: prox(300), centralizada: false },
               })
             }
           >
@@ -277,7 +288,7 @@ export function PainelComponentes() {
                 largura: 35,
                 profundidade: 35,
                 diametro: 35,
-                posicao: { trecho: 0, distanciaInicio: 120, centralizada: false, recuoFrontal: 60 },
+                posicao: { trecho: 0, distanciaInicio: prox(120), centralizada: false, recuoFrontal: 60 },
               })
             }
           >
@@ -291,7 +302,7 @@ export function PainelComponentes() {
                 largura: 30,
                 profundidade: 30,
                 diametro: 30,
-                posicao: { trecho: 0, distanciaInicio: 200, centralizada: false, recuoFrontal: 60 },
+                posicao: { trecho: 0, distanciaInicio: prox(200), centralizada: false, recuoFrontal: 60 },
               })
             }
           >
@@ -300,140 +311,216 @@ export function PainelComponentes() {
         </div>
 
         {recortes.map((r) => {
-          const ehFuro = r.diametro != null;
-          const ehCuba = r.tipo === "cuba_embutir" || r.tipo === "cuba_sobrepor";
+          const mesmoTipo = recortes.filter((x) => x.tipo === r.tipo);
+          const n = mesmoTipo.length > 1 ? ` ${mesmoTipo.indexOf(r) + 1}` : "";
+          const aberto = abertoRec === r.id;
           return (
-            <div key={r.id} className="comp-item">
-              <div className="comp-item__head">
-                <strong>{rotulo(r.tipo)}</strong>
-                <button className="link-remover" onClick={() => removeRecorte(r.id)}>
-                  remover
-                </button>
-              </div>
-
-              {ehCuba && (
-                <label className="campo campo--inline">
-                  <span className="campo__label">Modelo</span>
-                  <select
-                    value={r.modelo}
-                    onChange={(e) => {
-                      const cuba = CUBAS.find((c) => c.id === e.target.value);
-                      if (cuba)
-                        updateRecorte(r.id, {
-                          modelo: cuba.id,
-                          tipo: cuba.tipo,
-                          largura: cuba.largura,
-                          profundidade: cuba.profundidade,
-                        });
-                    }}
-                  >
-                    {CUBAS.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nome}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-
-              {trechos.length > 1 && (
-                <label className="campo campo--inline">
-                  <span className="campo__label">Trecho</span>
-                  <select
-                    value={r.posicao.trecho}
-                    onChange={(e) =>
-                      updateRecorte(r.id, { posicao: { ...r.posicao, trecho: Number(e.target.value) } })
-                    }
-                  >
-                    {trechos.map((_, i) => (
-                      <option key={i} value={i}>
-                        {["A", "B", "C"][i]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-
-              {r.tipo === "area_molhada" && (
-                <div className="chips chips--sm">
-                  {(["retangular", "arredondado", "oval"] as const).map((c) => (
-                    <button
-                      key={c}
-                      className={`chip ${r.canto === c ? "is-active" : ""}`}
-                      onClick={() => updateRecorte(r.id, { canto: c })}
-                    >
-                      {CANTO_AREA_MOLHADA_LABEL[c]}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {ehFuro ? (
-                <label className="campo campo--inline">
-                  <span className="campo__label">Diâmetro (mm)</span>
-                  <input
-                    type="number"
-                    value={r.diametro}
-                    onChange={(e) =>
-                      updateRecorte(r.id, {
-                        diametro: Number(e.target.value),
-                        largura: Number(e.target.value),
-                        profundidade: Number(e.target.value),
-                      })
-                    }
-                  />
-                </label>
-              ) : (
-                <div className="comp-item__medidas">
-                  <CampoCm
-                    label="Largura"
-                    valueMm={r.largura}
-                    onChangeMm={(mm) => updateRecorte(r.id, { largura: mm })}
-                    max={400}
-                  />
-                  <CampoCm
-                    label="Profundidade"
-                    valueMm={r.profundidade}
-                    onChangeMm={(mm) => updateRecorte(r.id, { profundidade: mm })}
-                    max={150}
-                  />
-                </div>
-              )}
-
-              <label className="check check--sm">
-                <input
-                  type="checkbox"
-                  checked={r.posicao.centralizada}
-                  onChange={(e) =>
-                    updateRecorte(r.id, { posicao: { ...r.posicao, centralizada: e.target.checked } })
-                  }
-                />
-                Centralizar no comprimento
-              </label>
-
-              {!r.posicao.centralizada && (
-                <CampoCm
-                  label="Distância do início do trecho"
-                  valueMm={r.posicao.distanciaInicio}
-                  onChangeMm={(mm) =>
-                    updateRecorte(r.id, { posicao: { ...r.posicao, distanciaInicio: mm } })
-                  }
-                  max={1000}
+            <div key={r.id} className={`comp-card ${aberto ? "is-open" : ""}`}>
+              <button
+                className="comp-card__head"
+                onClick={() => setAbertoRec(aberto ? null : r.id)}
+              >
+                <span>{rotulo(r.tipo)}{n}</span>
+                <span className="comp-card__chev">{aberto ? "▾" : "▸"}</span>
+              </button>
+              {aberto && (
+                <RecorteEditor
+                  r={r}
+                  trechos={trechos}
+                  onRemove={() => {
+                    removeRecorte(r.id);
+                    setAbertoRec(null);
+                  }}
                 />
               )}
-
-              <CampoCm
-                label="Recuo da borda frontal"
-                valueMm={r.posicao.recuoFrontal ?? 0}
-                onChangeMm={(mm) =>
-                  updateRecorte(r.id, { posicao: { ...r.posicao, recuoFrontal: mm } })
-                }
-                max={100}
-              />
             </div>
           );
         })}
       </section>
+    </div>
+  );
+}
+
+// ---- editor de um recorte (cuba, cooktop, área molhada, furo) ----
+
+const FORMAS = [
+  { c: "retangular", label: "Reto", ico: "▭" },
+  { c: "arredondado", label: "Arred.", ico: "▢" },
+  { c: "oval", label: "Oval", ico: "⬭" },
+] as const;
+
+function RecorteEditor({
+  r,
+  trechos,
+  onRemove,
+}: {
+  r: Recorte;
+  trechos: { comprimento: number; profundidade: number }[];
+  onRemove: () => void;
+}) {
+  const updateRecorte = useProjectStore((s) => s.updateRecorte);
+  const ehFuro = r.diametro != null;
+  const ehCuba = r.tipo === "cuba_embutir" || r.tipo === "cuba_sobrepor";
+  const t = trechos[Math.min(r.posicao.trecho, trechos.length - 1)];
+
+  const larg = r.diametro ?? r.largura;
+  const prof = r.diametro ?? r.profundidade;
+  const maxIni = Math.max(t.comprimento - larg, 0);
+  const ini = r.posicao.centralizada
+    ? maxIni / 2
+    : Math.min(Math.max(r.posicao.distanciaInicio, 0), maxIni);
+  const maxRecuo = Math.max(t.profundidade - prof, 0);
+  const recuo = Math.min(Math.max(r.posicao.recuoFrontal ?? maxRecuo / 2, 0), maxRecuo);
+
+  const dLat = ini - maxIni / 2;
+  const labelLat =
+    Math.abs(dLat) < 20
+      ? "Centralizada"
+      : dLat < 0
+        ? `${Math.round(-dLat / 10)} cm p/ esquerda`
+        : `${Math.round(dLat / 10)} cm p/ direita`;
+  const labelProf =
+    Math.abs(recuo - maxRecuo / 2) < 20
+      ? "Posição padrão"
+      : recuo > maxRecuo / 2
+        ? "mais para o fundo"
+        : "mais para a frente";
+
+  const setPos = (patch: Partial<PosicaoRecorte>) =>
+    updateRecorte(r.id, { posicao: { ...r.posicao, ...patch } });
+
+  return (
+    <div className="comp-item">
+      {ehCuba && (
+        <label className="campo campo--inline">
+          <span className="campo__label">Modelo</span>
+          <select
+            value={r.modelo}
+            onChange={(e) => {
+              const cuba = CUBAS.find((c) => c.id === e.target.value);
+              if (cuba)
+                updateRecorte(r.id, {
+                  modelo: cuba.id,
+                  tipo: cuba.tipo,
+                  largura: cuba.largura,
+                  profundidade: cuba.profundidade,
+                });
+            }}
+          >
+            {CUBAS.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {trechos.length > 1 && (
+        <label className="campo campo--inline">
+          <span className="campo__label">Trecho</span>
+          <select
+            value={r.posicao.trecho}
+            onChange={(e) => setPos({ trecho: Number(e.target.value) })}
+          >
+            {trechos.map((_, i) => (
+              <option key={i} value={i}>
+                {["A", "B", "C"][i]}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {!ehFuro && (
+        <div className="formas">
+          {FORMAS.map((f) => (
+            <button
+              key={f.c}
+              className={`forma ${(r.canto ?? "retangular") === f.c ? "is-active" : ""}`}
+              onClick={() => updateRecorte(r.id, { canto: f.c })}
+              title={f.label}
+            >
+              <span className="forma__ico">{f.ico}</span>
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {ehFuro ? (
+        <label className="campo campo--inline">
+          <span className="campo__label">Diâmetro (mm)</span>
+          <input
+            type="number"
+            value={r.diametro}
+            onChange={(e) =>
+              updateRecorte(r.id, {
+                diametro: Number(e.target.value),
+                largura: Number(e.target.value),
+                profundidade: Number(e.target.value),
+              })
+            }
+          />
+        </label>
+      ) : (
+        <div className="comp-item__medidas">
+          <CampoCm
+            label="Largura"
+            valueMm={r.largura}
+            onChangeMm={(mm) => updateRecorte(r.id, { largura: mm })}
+            max={400}
+          />
+          <CampoCm
+            label="Comprimento"
+            valueMm={r.profundidade}
+            onChangeMm={(mm) => updateRecorte(r.id, { profundidade: mm })}
+            max={150}
+          />
+        </div>
+      )}
+
+      <div className="slider slider--sm">
+        <div className="slider__topo">
+          <span>Posição lateral</span>
+          <strong>{labelLat}</strong>
+        </div>
+        <div className="slider__ends">
+          <em>esquerda</em>
+          <input
+            type="range"
+            min={0}
+            max={maxIni || 1}
+            step={5}
+            value={ini}
+            onChange={(e) => setPos({ centralizada: false, distanciaInicio: Number(e.target.value) })}
+          />
+          <em>direita</em>
+        </div>
+      </div>
+
+      <div className="slider slider--sm">
+        <div className="slider__topo">
+          <span>Posição (fundo ↔ frente)</span>
+          <strong>{labelProf}</strong>
+        </div>
+        <div className="slider__ends">
+          <em>fundo</em>
+          <input
+            type="range"
+            min={0}
+            max={maxRecuo || 1}
+            step={5}
+            value={maxRecuo - recuo}
+            onChange={(e) => setPos({ recuoFrontal: maxRecuo - Number(e.target.value) })}
+          />
+          <em>frente</em>
+        </div>
+      </div>
+
+      <button className="link-remover" onClick={onRemove}>
+        remover
+      </button>
     </div>
   );
 }

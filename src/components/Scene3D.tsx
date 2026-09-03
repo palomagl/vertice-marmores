@@ -102,7 +102,7 @@ function useSlab(projeto: Projeto) {
       const hole = new THREE.Path();
       if (g.raio != null) {
         hole.absellipse(g.centro.x / MM, g.centro.y / MM, g.raio / MM, g.raio / MM, 0, Math.PI * 2, true, 0);
-      } else if (r.tipo === "area_molhada" && r.canto === "oval") {
+      } else if (r.canto === "oval") {
         hole.absellipse(g.centro.x / MM, g.centro.y / MM, r.largura / (2 * MM), r.profundidade / (2 * MM), 0, Math.PI * 2, true, 0);
       } else {
         g.cantos.forEach((c, i) => {

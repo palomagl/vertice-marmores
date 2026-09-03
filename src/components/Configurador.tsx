@@ -14,6 +14,7 @@ import { DimensionBar } from "./DimensionBar";
 import { Drawing2D } from "./Drawing2D";
 import { PainelComponentes, PainelPedras } from "./paineis";
 import { PainelOrcamento } from "./PainelOrcamento";
+import { PositionRuler } from "./PositionRuler";
 
 const Scene3D = lazy(() =>
   import("./Scene3D").then((m) => ({ default: m.Scene3D })),
@@ -110,6 +111,7 @@ export function Configurador() {
             <aside className="simu__right">
               <PainelPedras />
             </aside>
+            <PositionRuler />
           </>
         )}
       </div>
