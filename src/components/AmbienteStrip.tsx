@@ -35,7 +35,7 @@ export function AmbienteStrip() {
         <button
           key={a}
           className={`ambiente-card ${a === atual ? "is-active" : ""}`}
-          style={{ backgroundImage: `url(/ambientes/${a}.png), ${GRAD[a]}` }}
+          style={{ backgroundImage: `url(/ambientes/${a}.jpg), ${GRAD[a]}` }}
           title={PRESETS[a].descricao}
           onClick={() => aplicarAmbiente(a)}
         >
