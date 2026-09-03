@@ -40,15 +40,18 @@ export function Projetos() {
   return (
     <div className="tela">
       <header className="tela__topo">
-        <h1>DF Mármores — Projetos</h1>
+        <div>
+          <h1>Projetos</h1>
+          <p className="tela__sub">DF Mármores e Granitos</p>
+        </div>
         <button className="btn-primario" onClick={criar}>
-          + Novo projeto
+          Novo projeto
         </button>
       </header>
 
       <input
         className="tela__busca"
-        placeholder="Buscar por cliente ou projeto"
+        placeholder="Buscar por cliente ou identificação do projeto"
         value={busca}
         onChange={(e) => setBusca(e.target.value)}
       />
@@ -60,18 +63,15 @@ export function Projetos() {
             <li key={p.id} className="linha-projeto">
               <button className="linha-projeto__abrir" onClick={() => abrir(p.id)}>
                 <div className="linha-projeto__nome">
-                  <strong>{p.nome || "Sem título"}</strong>
-                  <span>{p.cliente.nome || "sem cliente"}</span>
+                  <strong>{p.nome || "Projeto sem identificação"}</strong>
+                  <span>{p.cliente.nome || "Cliente não informado"}</span>
                 </div>
                 <div className="linha-projeto__meta">
                   <span>
                     {AMBIENTE_LABEL[p.ambiente]} · {FORMATO_LABEL[p.bancada.formato]}
                   </span>
                   <span>
-                    {new Date(p.atualizadoEm).toLocaleDateString("pt-BR")} ·{" "}
-                    <em className={p.sync === "local" ? "tag-local" : "tag-sync"}>
-                      {p.sync === "local" ? "local" : "sincronizado"}
-                    </em>
+                    Atualizado em {new Date(p.atualizadoEm).toLocaleDateString("pt-BR")}
                   </span>
                 </div>
                 <div className="linha-projeto__total">
@@ -82,7 +82,7 @@ export function Projetos() {
                 className="linha-projeto__excluir"
                 title="Excluir"
                 onClick={() => {
-                  if (confirm(`Excluir "${p.nome || "Sem título"}"?`)) {
+                  if (confirm(`Excluir "${p.nome || "Projeto sem identificação"}"?`)) {
                     void excluirProjeto(p.id);
                   }
                 }}
@@ -95,8 +95,8 @@ export function Projetos() {
         {filtrada.length === 0 && (
           <li className="lista-projetos__vazio">
             {lista.length === 0
-              ? "Nenhum projeto ainda. Crie o primeiro."
-              : "Nada encontrado para essa busca."}
+              ? "Nenhum projeto cadastrado. Clique em Novo projeto para começar."
+              : "Nenhum projeto encontrado para essa busca."}
           </li>
         )}
       </ul>

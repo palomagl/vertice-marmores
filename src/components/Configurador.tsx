@@ -38,16 +38,16 @@ export function Configurador() {
     () => calcularOrcamento(projeto, tabela).total,
     [projeto, tabela],
   );
-  const nomeMaterial = mat?.nome ?? "Sem material";
+  const nomeMaterial = mat?.nome ?? "Selecione a pedra";
 
   return (
     <>
       <div className="rotacione">
         <div className="rotacione__ico">📱</div>
-        <strong>Gire o celular</strong>
+        <strong>Gire o dispositivo</strong>
         <span>
-          O projeto da bancada é feito com a tela deitada. Vire o aparelho para o
-          lado para continuar.
+          O projeto da bancada é elaborado com a tela na horizontal. Vire o
+          aparelho para o lado para continuar.
         </span>
       </div>
       <div className={`simu ${apresentacao ? "simu--apresentacao" : ""}`}>
@@ -56,30 +56,26 @@ export function Configurador() {
           <Link to="/" className="simu__voltar" title="Meus projetos">‹</Link>
           <input
             className="simu__nome"
-            placeholder="Nome do projeto — ex: Julia · Pia cozinha"
+            placeholder="Identificação do projeto — ex: Julia · Pia cozinha"
             value={projeto.nome}
             onChange={(e) => setNome(e.target.value)}
           />
-          <span className={`simu__sync ${projeto.sync === "local" ? "tag-local" : "tag-sync"}`}>
-            {projeto.sync === "local" ? "salvo localmente" : "sincronizado"}
-          </span>
+          <span className="simu__sync">Salvo</span>
           <div className="simu__menu-wrap">
             <button className="btn-ico" onClick={() => setMenu((v) => !v)}>⋮</button>
             {menu && (
               <div className="menu" onMouseLeave={() => setMenu(false)}>
                 <button onClick={() => { setApresentacao(true); setMenu(false); }}>
-                  Apresentar ao cliente
+                  Modo apresentação
                 </button>
-                <Link to="/proposta" onClick={() => setMenu(false)}>Gerar proposta (PDF)</Link>
+                <Link to="/proposta" onClick={() => setMenu(false)}>Proposta comercial</Link>
                 <Link to="/ordem-servico" onClick={() => setMenu(false)}>Ordem de serviço</Link>
-                <button disabled>Ver na vida real (AR) — em breve</button>
-                <button disabled>Enviar no WhatsApp — em breve</button>
                 <hr />
                 <Link to="/" onClick={() => setMenu(false)}>Meus projetos</Link>
                 <button onClick={() => { void novoProjeto("pia"); setMenu(false); }}>
                   Novo projeto
                 </button>
-                <Link to="/precos" onClick={() => setMenu(false)}>Tabela de preços</Link>
+                <Link to="/precos" onClick={() => setMenu(false)}>Configurações</Link>
               </div>
             )}
           </div>
@@ -92,7 +88,7 @@ export function Configurador() {
       <div className="simu__palco">
         {modo === "3d" && (
           <div className="simu__badge">
-            <span>PREVIEW 3D</span>
+            <span>VISUALIZAÇÃO 3D</span>
             <strong>{nomeMaterial}</strong>
           </div>
         )}
@@ -146,9 +142,9 @@ export function Configurador() {
             <button className="btn-toggle" onClick={toggleModo}>
               {modo === "2d" ? "Ver em 3D" : "Ver em 2D"}
             </button>
-            <button className="btn-primario" disabled title="Integração em breve">
-              Enviar projeto
-            </button>
+            <Link className="btn-primario" to="/proposta">
+              Gerar orçamento
+            </Link>
           </>
         )}
       </footer>

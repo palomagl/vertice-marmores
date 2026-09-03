@@ -54,7 +54,7 @@ do cliente.
 | Backend (opcional) | Supabase |
 | Deploy | Vercel |
 
-## Rodando
+## Desenvolvimento
 
 Precisa de **Node 20+**.
 
@@ -123,20 +123,11 @@ textura desenhada por código. A lista dos nomes de arquivo está em
 [`public/chapas/LISTA.md`](public/chapas/LISTA.md). É só soltar o arquivo na
 pasta — nenhuma mudança de código.
 
-## Roadmap
+## Em evolução
 
-- [ ] Enviar projeto no WhatsApp
-- [ ] Exportar / importar projeto (.json) para backup
-- [ ] Sincronização com Supabase (backup na nuvem, vários aparelhos)
-- [ ] AR — ver a bancada no ambiente pelo celular (`<model-viewer>`)
-- [ ] Calibração de tela + botão 1:1 (seção 5 da especificação)
-- [ ] Régua de posição por trecho no L / U
-- [ ] Testes automáticos nas contas do orçamento
-
-## Especificação
-
-O documento de produto completo está em
-[`especificacao-app-marmoraria.md`](especificacao-app-marmoraria.md).
+Próximas entregas previstas: envio da proposta pelo WhatsApp, exportação de
+projetos para backup, sincronização em nuvem, visualização em realidade
+aumentada e ajuste fino de escala 1:1 na tela.
 
 ---
 

@@ -80,6 +80,9 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .btn-primario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--acento);
   color: #fff;
   border: none;
@@ -87,6 +90,7 @@ input[type="range"]::-moz-range-thumb {
   padding: 12px 26px;
   font-size: 15px;
   font-weight: 700;
+  text-decoration: none;
   box-shadow: 0 8px 20px rgba(47, 125, 79, 0.28);
 }
 .btn-primario:disabled { opacity: 0.5; box-shadow: none; }
@@ -159,7 +163,13 @@ input[type="range"]::-moz-range-thumb {
   font-size: 13.5px;
   font-weight: 600;
 }
-.simu__sync { font-size: 11.5px; }
+.simu__sync {
+  font-size: 11.5px;
+  color: var(--acento);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.simu__sync::before { content: "✓ "; }
 .simu__menu-wrap { position: relative; margin-left: auto; }
 
 /* faixa de ambientes */
@@ -612,6 +622,7 @@ input[type="range"]::-moz-range-thumb {
 .tela { max-width: 880px; margin: 0 auto; padding: 28px 20px 60px; }
 .tela__topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
 .tela__topo h1 { font-size: 20px; margin: 10px 0 0; }
+.tela__sub { margin: 2px 0 0; font-size: 12.5px; color: var(--texto-dim); }
 .tela__topo .btn-ghost { display: inline-block; margin-bottom: 2px; }
 .tela__nota { font-size: 12px; color: var(--texto-dim); }
 .tela__busca { width: 100%; padding: 11px 14px; margin-bottom: 16px; }
@@ -648,6 +659,10 @@ input[type="range"]::-moz-range-thumb {
 .preco-row__in em, .preco-row em { font-style: normal; font-size: 11px; color: var(--texto-dim); }
 .preco-row input { width: 96px; text-align: right; }
 .preco-mini { width: 60px !important; }
+.preco-card--wide { grid-column: 1 / -1; }
+.preco-card__nota { margin: -4px 0 10px; font-size: 11.5px; color: var(--texto-dim); }
+.preco-row--txt { text-transform: none; }
+.preco-row--txt input { width: 260px; max-width: 55%; text-align: left; }
 
 /* ===================== Proposta / Ordem de serviço ===================== */
 .proposta-wrap { min-height: 100%; background: #e7e9eb; padding: 24px; }

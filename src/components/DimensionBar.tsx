@@ -1,6 +1,6 @@
 /**
  * Barra de medidas no topo do palco: pills de formato + alternância
- * Barrinha/Digitar + comprimento(s) e profundidade.
+ * Deslizar/Digitar + comprimento(s) e profundidade.
  */
 import { useState } from "react";
 import { FORMATO_LABEL } from "@/domain/presets";
@@ -35,7 +35,7 @@ export function DimensionBar() {
         ))}
         <div className="medidas-bar__toggle">
           <button className={modo === "barra" ? "is-active" : ""} onClick={() => setModo("barra")}>
-            Barrinha
+            Deslizar
           </button>
           <button className={modo === "digitar" ? "is-active" : ""} onClick={() => setModo("digitar")}>
             Digitar

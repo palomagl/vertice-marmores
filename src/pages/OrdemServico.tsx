@@ -12,11 +12,11 @@ import { contornoBancada, geometriaRecorte } from "@/domain/geometry";
 import { mmParaCmLabel } from "@/domain/units";
 import { useProjectStore } from "@/store/projectStore";
 
-const EMPRESA = "DF Mármores e Granitos";
 const LETRA = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
 export function OrdemServico() {
   const projeto = useProjectStore((s) => s.projeto);
+  const empresa = useProjectStore((s) => s.tabela.empresa);
   const material = MATERIAIS.find((m) => m.id === projeto.material?.id);
 
   const { segmentos } = useMemo(
@@ -39,12 +39,12 @@ export function OrdemServico() {
         <header className="doc__head">
           <div>
             <h1>Ordem de Serviço — Oficina</h1>
-            <p>{EMPRESA}</p>
+            <p>{empresa.nome}</p>
           </div>
           <div className="doc__num">
             <strong>{projeto.numero ?? "S/N"}</strong>
             <p>{hoje.toLocaleDateString("pt-BR")}</p>
-            <p>{projeto.nome || "Sem título"}</p>
+            <p>{projeto.nome || "Projeto sem identificação"}</p>
           </div>
         </header>
 

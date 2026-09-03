@@ -35,6 +35,23 @@ function NumRow({
   );
 }
 
+function TxtRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="preco-row preco-row--txt">
+      <span>{label}</span>
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} />
+    </label>
+  );
+}
+
 export function Precos() {
   const tabela = useProjectStore((s) => s.tabela);
   const setTabela = useProjectStore((s) => s.setTabela);
@@ -48,17 +65,63 @@ export function Precos() {
       [chave]: { ...(tabela[chave] as Record<string, number>), [sub]: v },
     } as Partial<TabelaPrecos>);
 
+  const setEmpresa = (patch: Partial<TabelaPrecos["empresa"]>) =>
+    setTabela({ empresa: { ...tabela.empresa, ...patch } });
+
   return (
     <div className="tela">
       <header className="tela__topo">
         <div>
           <Link to="/editor" className="btn-ghost">← Voltar ao projeto</Link>
-          <h1>Tabela de preços</h1>
+          <h1>Configurações</h1>
         </div>
         <span className="tela__nota">Salvo automaticamente</span>
       </header>
 
       <div className="preco-grid">
+        <section className="preco-card preco-card--wide">
+          <h2>Dados da empresa</h2>
+          <p className="preco-card__nota">
+            Aparecem na proposta comercial e na ordem de serviço.
+          </p>
+          <TxtRow
+            label="Razão social"
+            value={tabela.empresa.nome}
+            onChange={(v) => setEmpresa({ nome: v })}
+          />
+          <TxtRow
+            label="CNPJ"
+            value={tabela.empresa.cnpj}
+            onChange={(v) => setEmpresa({ cnpj: v })}
+          />
+          <TxtRow
+            label="Telefone"
+            value={tabela.empresa.telefone}
+            onChange={(v) => setEmpresa({ telefone: v })}
+          />
+          <TxtRow
+            label="Cidade / UF"
+            value={tabela.empresa.cidade}
+            onChange={(v) => setEmpresa({ cidade: v })}
+          />
+          <TxtRow
+            label="Prazo de entrega"
+            value={tabela.empresa.prazoEntrega}
+            onChange={(v) => setEmpresa({ prazoEntrega: v })}
+          />
+          <TxtRow
+            label="Forma de pagamento"
+            value={tabela.empresa.formaPagamento}
+            onChange={(v) => setEmpresa({ formaPagamento: v })}
+          />
+          <NumRow
+            label="Validade da proposta"
+            value={tabela.empresa.validadeDias}
+            onChange={(n) => setEmpresa({ validadeDias: n })}
+            suffix="dias"
+          />
+        </section>
+
         <section className="preco-card">
           <h2>Acabamento de borda (R$/m linear)</h2>
           {Object.entries(tabela.acabamentoBorda).map(([k, v]) => (

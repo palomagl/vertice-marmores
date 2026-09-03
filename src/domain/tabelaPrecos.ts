@@ -9,7 +9,19 @@ import type {
   TipoRecorte,
 } from "./project";
 
+export interface DadosEmpresa {
+  nome: string;
+  cnpj: string;
+  telefone: string;
+  cidade: string;
+  prazoEntrega: string;
+  formaPagamento: string;
+  validadeDias: number;
+}
+
 export interface TabelaPrecos {
+  /** dados que aparecem na proposta e na ordem de serviço */
+  empresa: DadosEmpresa;
   /** R$/m linear por tipo de acabamento de borda */
   acabamentoBorda: Record<TipoAcabamentoBorda, number>;
   /** R$ por unidade, valor fixo por tipo de recorte */
@@ -37,6 +49,15 @@ export interface TabelaPrecos {
 }
 
 export const TABELA_PADRAO: TabelaPrecos = {
+  empresa: {
+    nome: "DF Mármores e Granitos",
+    cnpj: "",
+    telefone: "",
+    cidade: "",
+    prazoEntrega: "A combinar",
+    formaPagamento: "A combinar",
+    validadeDias: 15,
+  },
   acabamentoBorda: {
     reto: 45,
     boleado: 70,

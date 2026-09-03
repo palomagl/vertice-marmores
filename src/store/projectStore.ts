@@ -17,6 +17,7 @@ import {
   trechosPadrao,
 } from "@/domain/presets";
 import { TABELA_PADRAO, type TabelaPrecos } from "@/domain/tabelaPrecos";
+import { proximoNumeroProposta } from "@/domain/numero";
 import {
   carregarProjeto,
   carregarTabela,
@@ -71,6 +72,8 @@ interface ProjectState {
   /** define a altura de um frontão/saia num lado (0 = remove) */
   setAbaLado: (tipo: "frontao" | "saia", lado: Lado, alturaMm: number) => void;
   setAbaReforco: (tipo: "frontao" | "saia", lado: Lado, reforco: boolean) => void;
+  /** atribui o número sequencial da proposta, se ainda não tiver */
+  garantirNumeroProposta: () => void;
 
   // admin
   setTabela: (patch: Partial<TabelaPrecos>) => void;
@@ -85,6 +88,9 @@ function commit(projeto: Projeto, mut: (p: Projeto) => void): Projeto {
 }
 
 export const useProjectStore = create<ProjectState>()((set, get) => {
+  /** evita hidratação concorrente (React StrictMode chama o efeito duas vezes) */
+  let hidratando = false;
+
   /** aplica um patch no projeto e grava no disco */
   const alterar = (mut: (p: Projeto) => void) => {
     const projeto = commit(get().projeto, mut);
@@ -108,6 +114,8 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
     setApresentacao: (apresentacao) => set({ apresentacao }),
 
     hidratar: async () => {
+      if (hidratando || get().carregado) return;
+      hidratando = true;
       const tabelaSalva = await carregarTabela();
       const id = idProjetoAtual.get();
       let projeto = id ? await carregarProjeto(id) : undefined;
@@ -117,12 +125,14 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
         idProjetoAtual.set(projeto.id);
       }
       const lista = await listarProjetos();
-      set({
-        projeto,
-        tabela: tabelaSalva ?? TABELA_PADRAO,
-        lista,
-        carregado: true,
-      });
+      // mescla com o padrão para cobrir campos novos em tabelas antigas
+      const tabela: TabelaPrecos = {
+        ...TABELA_PADRAO,
+        ...tabelaSalva,
+        empresa: { ...TABELA_PADRAO.empresa, ...(tabelaSalva?.empresa ?? {}) },
+      };
+      set({ projeto, tabela, lista, carregado: true });
+      hidratando = false;
     },
 
     recarregarLista: async () => set({ lista: await listarProjetos() }),
@@ -226,6 +236,12 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
         const i = p.complementos.findIndex((c) => c.tipo === tipo && c.lado === lado);
         if (i >= 0) p.complementos[i] = { ...p.complementos[i], reforco };
       }),
+
+    garantirNumeroProposta: () => {
+      if (get().projeto.numero) return;
+      const numero = proximoNumeroProposta();
+      alterar((p) => void (p.numero = numero));
+    },
 
     setTabela: (patch) =>
       set((s) => {

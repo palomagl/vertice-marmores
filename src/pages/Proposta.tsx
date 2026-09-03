@@ -4,7 +4,7 @@
  * "Imprimir" funciona direto e o próprio diálogo salva em PDF.
  * O SVG do desenho entra inline e imprime vetorial.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Drawing2D } from "@/components/Drawing2D";
 import { MATERIAIS } from "@/domain/catalogo";
@@ -13,23 +13,24 @@ import { calcularOrcamento } from "@/domain/quote";
 import { brl, mmParaCmLabel } from "@/domain/units";
 import { useProjectStore } from "@/store/projectStore";
 
-const EMPRESA = {
-  nome: "DF Mármores e Granitos",
-  cnpj: "00.000.000/0001-00",
-  contato: "(00) 00000-0000",
-};
-
 export function Proposta() {
   const projeto = useProjectStore((s) => s.projeto);
   const tabela = useProjectStore((s) => s.tabela);
+  const garantirNumeroProposta = useProjectStore((s) => s.garantirNumeroProposta);
   const orc = useMemo(() => calcularOrcamento(projeto, tabela), [projeto, tabela]);
+  const empresa = tabela.empresa;
+
+  useEffect(() => {
+    garantirNumeroProposta();
+  }, [garantirNumeroProposta]);
 
   const hoje = new Date();
-  const validade = new Date(hoje.getTime() + 15 * 864e5);
-  const numero =
-    projeto.numero ??
-    `${hoje.getFullYear()}-${String(hoje.getMonth() * 40 + hoje.getDate()).padStart(4, "0")}`;
+  const validade = new Date(hoje.getTime() + empresa.validadeDias * 864e5);
+  const numero = projeto.numero ?? "—";
   const material = MATERIAIS.find((m) => m.id === projeto.material?.id);
+  const contato = [empresa.cnpj && `CNPJ ${empresa.cnpj}`, empresa.telefone, empresa.cidade]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="proposta-wrap">
@@ -43,8 +44,8 @@ export function Proposta() {
       <article className="documento">
         <header className="doc__head">
           <div>
-            <h1>{EMPRESA.nome}</h1>
-            <p>CNPJ {EMPRESA.cnpj} · {EMPRESA.contato}</p>
+            <h1>{empresa.nome}</h1>
+            {contato && <p>{contato}</p>}
           </div>
           <div className="doc__num">
             <strong>PROPOSTA Nº {numero}</strong>
@@ -60,7 +61,7 @@ export function Proposta() {
             {projeto.cliente.telefone ? ` · ${projeto.cliente.telefone}` : ""}
           </p>
           {projeto.cliente.endereco && <p>{projeto.cliente.endereco}</p>}
-          <p>Projeto: <strong>{projeto.nome || "Sem título"}</strong></p>
+          <p>Projeto: <strong>{projeto.nome || "Projeto sem identificação"}</strong></p>
         </section>
 
         <section className="doc__desenho nao-quebrar">
@@ -125,14 +126,16 @@ export function Proposta() {
             </tbody>
           </table>
           <p className="doc__obs">
-            Proposta sem custo e sem margem — documento do cliente. Valores
-            sujeitos a confirmação de medição na obra.
+            Valores sujeitos a confirmação de medição no local da instalação.
           </p>
         </section>
 
         <footer className="doc__rodape">
-          <p>Prazo de entrega e forma de pagamento a combinar.</p>
-          <p>{EMPRESA.nome} · CNPJ {EMPRESA.cnpj}</p>
+          <p>
+            Prazo de entrega: {empresa.prazoEntrega} · Pagamento:{" "}
+            {empresa.formaPagamento}
+          </p>
+          <p>{empresa.nome}{empresa.cnpj ? ` · CNPJ ${empresa.cnpj}` : ""}</p>
         </footer>
       </article>
     </div>
