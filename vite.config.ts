@@ -30,17 +30,13 @@ export default defineConfig({
         short_name: "DF Projeto",
         description:
           "Monte o projeto da bancada com o cliente e feche o orçamento na hora.",
-        theme_color: "#2f7d4f",
+        theme_color: "#1e2a45",
         background_color: "#f4f5f6",
         display: "standalone",
         orientation: "any",
         icons: [
-          {
-            src: "/favicon.svg",
-            sizes: "any",
-            type: "image/svg+xml",
-            purpose: "any maskable",
-          },
+          { src: "/favicon.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "/favicon.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
     }),
