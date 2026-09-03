@@ -99,7 +99,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
     carregado: false,
 
     aba: "ambientes",
-    modo: "2d",
+    modo: "3d",
     apresentacao: false,
 
     setAba: (aba) => set({ aba }),
