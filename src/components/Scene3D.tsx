@@ -89,7 +89,13 @@ function useSlab(projeto: Projeto) {
     const { pontos } = contornoBancada(projeto.bancada);
     const caixa = bbox(pontos);
     const shape = new THREE.Shape();
-    pontos.forEach((p, i) => {
+    // contorno sempre no sentido anti-horário (área assinada > 0)
+    const areaAssinada = pontos.reduce((s, p, i) => {
+      const q = pontos[(i + 1) % pontos.length];
+      return s + (p.x * q.y - q.x * p.y);
+    }, 0);
+    const contorno = areaAssinada < 0 ? [...pontos].reverse() : pontos;
+    contorno.forEach((p, i) => {
       const x = p.x / MM;
       const y = p.y / MM;
       if (i === 0) shape.moveTo(x, y);
@@ -101,11 +107,14 @@ function useSlab(projeto: Projeto) {
       const g = geometriaRecorte(projeto, r);
       const hole = new THREE.Path();
       if (g.raio != null) {
+        // furo redondo — sentido horário (oposto ao contorno)
         hole.absellipse(g.centro.x / MM, g.centro.y / MM, g.raio / MM, g.raio / MM, 0, Math.PI * 2, true, 0);
       } else if (r.canto === "oval") {
         hole.absellipse(g.centro.x / MM, g.centro.y / MM, r.largura / (2 * MM), r.profundidade / (2 * MM), 0, Math.PI * 2, true, 0);
       } else {
-        g.cantos.forEach((c, i) => {
+        // retângulo do recorte — cantos invertidos p/ ficar horário
+        const cw = [...g.cantos].reverse();
+        cw.forEach((c, i) => {
           const x = c.x / MM;
           const y = c.y / MM;
           if (i === 0) hole.moveTo(x, y);
