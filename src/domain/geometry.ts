@@ -5,7 +5,7 @@
  * Sistema de coordenadas: milímetros, convenção matemática (x direita, y "para o fundo").
  * A frente da bancada fica em y = 0. A parede fica no y maior.
  */
-import type { Bancada, Projeto, Recorte } from "./project";
+import type { Bancada, Complemento, Projeto, Recorte } from "./project";
 
 export interface Ponto {
   x: number;
@@ -16,6 +16,8 @@ export interface Segmento {
   a: Ponto;
   b: Ponto;
   comprimento: number;
+  /** índice do trecho a que este segmento pertence (frente/ponta) ou -1 */
+  trecho: number;
   /** true = encostado na parede, não leva acabamento de borda */
   parede: boolean;
 }
@@ -29,13 +31,32 @@ export interface BBox {
   altura: number;
 }
 
-const dist = (a: Ponto, b: Ponto): number => Math.hypot(b.x - a.x, b.y - a.y);
+export const dist = (a: Ponto, b: Ponto): number =>
+  Math.hypot(b.x - a.x, b.y - a.y);
 
-/** Fecha a lista de pontos em segmentos, aplicando a máscara de parede. */
-function segmentos(pontos: Ponto[], paredeMask: boolean[]): Segmento[] {
+const soma = (a: Ponto, b: Ponto): Ponto => ({ x: a.x + b.x, y: a.y + b.y });
+const escala = (a: Ponto, k: number): Ponto => ({ x: a.x * k, y: a.y * k });
+
+export function normalizar(v: Ponto): Ponto {
+  const m = Math.hypot(v.x, v.y) || 1;
+  return { x: v.x / m, y: v.y / m };
+}
+
+/** Fecha a lista de pontos em segmentos, aplicando as máscaras. */
+function segmentos(
+  pontos: Ponto[],
+  paredeMask: boolean[],
+  trechoMask: number[],
+): Segmento[] {
   return pontos.map((a, i) => {
     const b = pontos[(i + 1) % pontos.length];
-    return { a, b, comprimento: dist(a, b), parede: paredeMask[i] ?? false };
+    return {
+      a,
+      b,
+      comprimento: dist(a, b),
+      parede: paredeMask[i] ?? false,
+      trecho: trechoMask[i] ?? -1,
+    };
   });
 }
 
@@ -66,7 +87,8 @@ export function contornoBancada(bancada: Bancada): {
       ];
       // frente A, ponta A, PAREDE A, PAREDE B, ponta B, frente B
       const parede = [false, false, true, true, false, false];
-      return { pontos, segmentos: segmentos(pontos, parede) };
+      const trecho = [0, 0, 0, 1, 1, 1];
+      return { pontos, segmentos: segmentos(pontos, parede, trecho) };
     }
 
     case "U": {
@@ -87,7 +109,8 @@ export function contornoBancada(bancada: Bancada): {
         { x: 0, y: La },
       ];
       const parede = [false, false, false, true, true, true, false, false];
-      return { pontos, segmentos: segmentos(pontos, parede) };
+      const trecho = [1, 2, 2, 2, 1, 0, 0, 0];
+      return { pontos, segmentos: segmentos(pontos, parede, trecho) };
     }
 
     case "linear":
@@ -103,7 +126,8 @@ export function contornoBancada(bancada: Bancada): {
       ];
       // frente, ponta, PAREDE (fundo), ponta
       const parede = [false, false, true, false];
-      return { pontos, segmentos: segmentos(pontos, parede) };
+      const trecho = [0, 0, 0, 0];
+      return { pontos, segmentos: segmentos(pontos, parede, trecho) };
     }
   }
 }
@@ -116,6 +140,11 @@ export function bbox(pontos: Ponto[]): BBox {
   const maxX = Math.max(...xs);
   const maxY = Math.max(...ys);
   return { minX, minY, maxX, maxY, largura: maxX - minX, altura: maxY - minY };
+}
+
+export function centroide(pontos: Ponto[]): Ponto {
+  const s = pontos.reduce((acc, p) => soma(acc, p), { x: 0, y: 0 });
+  return escala(s, 1 / pontos.length);
 }
 
 /** Área real do polígono (fórmula do shoelace), em mm². */
@@ -139,11 +168,22 @@ export function bordaAcabadaMm(
     .reduce((acc, s) => acc + s.comprimento, 0);
 }
 
+/** Segmentos que recebem um complemento, pela regra do tipo. */
+export function segmentosDoComplemento(
+  segs: Segmento[],
+  comp: Complemento,
+): Segmento[] {
+  const naParede = comp.tipo === "frontao" || comp.tipo === "rodabanca";
+  return segs.filter(
+    (s) => s.parede === naParede && comp.trechos.includes(s.trecho),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Posicionamento de recortes — mesmo espaço de coordenadas do contorno.
 // ---------------------------------------------------------------------------
 
-interface FrameTrecho {
+export interface FrameTrecho {
   origem: Ponto;
   /** direção do comprimento do trecho (unitária) */
   eixo: Ponto;

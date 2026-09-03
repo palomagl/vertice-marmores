@@ -3,13 +3,17 @@
  * visualização em tela cheia, painéis flutuantes por cima, CTA fixo embaixo.
  * Pensado para tablet na horizontal, que é como o vendedor usa.
  */
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Link } from "react-router-dom";
 import { MATERIAIS } from "@/domain/catalogo";
 import { AMBIENTE_LABEL, FORMATO_LABEL } from "@/domain/presets";
 import { useProjectStore, type Aba } from "@/store/projectStore";
 import { Drawing2D } from "./Drawing2D";
-import { Scene3D } from "./Scene3D";
+
+// Three.js só carrega quando o vendedor abre o 3D.
+const Scene3D = lazy(() =>
+  import("./Scene3D").then((m) => ({ default: m.Scene3D })),
+);
 import {
   PainelAmbientes,
   PainelComponentes,
@@ -48,7 +52,9 @@ export function Configurador() {
       {/* área de visualização, tela cheia */}
       <div className="config__palco">
         {modo === "3d" ? (
-          <Scene3D projeto={projeto} cor={cor} apresentacao={apresentacao} />
+          <Suspense fallback={<div className="palco-carregando">Carregando 3D…</div>}>
+            <Scene3D projeto={projeto} cor={cor} apresentacao={apresentacao} />
+          </Suspense>
         ) : (
           <Drawing2D projeto={projeto} cor={cor} className="config__svg" />
         )}
@@ -86,22 +92,29 @@ export function Configurador() {
                 >
                   Apresentar ao cliente
                 </button>
-                <Link to={`/proposta`} onClick={() => setMenuAberto(false)}>
+                <Link to="/proposta" onClick={() => setMenuAberto(false)}>
                   Gerar proposta (PDF)
+                </Link>
+                <Link to="/ordem-servico" onClick={() => setMenuAberto(false)}>
+                  Ordem de serviço (oficina)
                 </Link>
                 <button disabled>Ver na vida real (AR) — em breve</button>
                 <button disabled>Enviar no WhatsApp — em breve</button>
                 <hr />
+                <Link to="/" onClick={() => setMenuAberto(false)}>
+                  Meus projetos
+                </Link>
                 <button
                   onClick={() => {
-                    if (confirm("Começar um projeto novo? O atual será substituído.")) {
-                      novoProjeto("pia");
-                    }
+                    void novoProjeto("pia");
                     setMenuAberto(false);
                   }}
                 >
                   Novo projeto
                 </button>
+                <Link to="/precos" onClick={() => setMenuAberto(false)}>
+                  Tabela de preços
+                </Link>
               </div>
             )}
           </div>

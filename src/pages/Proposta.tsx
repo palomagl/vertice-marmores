@@ -34,7 +34,7 @@ export function Proposta() {
   return (
     <div className="proposta-wrap">
       <div className="proposta-bar app-ui">
-        <Link to="/" className="btn-ghost">← Voltar ao projeto</Link>
+        <Link to="/editor" className="btn-ghost">← Voltar ao projeto</Link>
         <button className="btn-primario" onClick={() => window.print()}>
           Imprimir / Salvar PDF
         </button>

@@ -57,7 +57,21 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
   inset: 0;
   background: radial-gradient(circle at 50% 40%, #263243, var(--palco) 70%);
 }
-.config__svg { padding: 4vmin; }
+.config__svg { padding: 3vmin; }
+/* No desktop, o desenho 2D recua dos painéis flutuantes para não ficar coberto. */
+@media (min-width: 900px) {
+  .config:not(.config--apresentacao) .config__svg {
+    padding: 92px 348px 96px 430px;
+  }
+}
+.palco-carregando {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--texto-dim);
+  font-size: 13px;
+}
 
 .config--apresentacao .config__palco {
   background: linear-gradient(180deg, #f1f2f4, #e2e4e7);
@@ -467,6 +481,120 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
   .quebra { break-before: page; }
   .nao-quebrar { break-inside: avoid; }
 }
+
+/* ============================ telas (lista, admin) ============================ */
+
+.boot {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--texto-dim);
+  font-size: 14px;
+}
+
+.tela {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+}
+.tela__topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.tela__topo h1 { font-size: 20px; margin: 10px 0 0; }
+.tela__topo .btn-ghost { display: inline-block; margin-bottom: 2px; }
+.tela__nota { font-size: 12px; color: var(--texto-dim); }
+.tela__busca {
+  width: 100%;
+  padding: 11px 14px;
+  margin-bottom: 16px;
+}
+
+.lista-projetos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.lista-projetos__vazio { color: var(--texto-dim); font-size: 13px; padding: 24px 4px; }
+.linha-projeto {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  background: rgba(17, 24, 39, 0.6);
+  border: 1px solid var(--painel-borda);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.linha-projeto__abrir {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.4fr 1.3fr auto;
+  gap: 12px;
+  align-items: center;
+  background: transparent;
+  border: none;
+  padding: 12px 14px;
+  text-align: left;
+}
+.linha-projeto__nome { display: flex; flex-direction: column; }
+.linha-projeto__nome strong { font-size: 14px; }
+.linha-projeto__nome span { font-size: 12px; color: var(--texto-dim); }
+.linha-projeto__meta { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: var(--texto-dim); }
+.linha-projeto__meta em { font-style: normal; }
+.linha-projeto__total { font-size: 14px; font-weight: 700; color: var(--acento); white-space: nowrap; }
+.linha-projeto__excluir {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--painel-borda);
+  color: var(--texto-dim);
+  padding: 0 14px;
+  font-size: 13px;
+}
+.linha-projeto__excluir:hover { color: var(--alerta); background: rgba(248, 113, 113, 0.1); }
+
+.preco-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+.preco-card {
+  background: rgba(17, 24, 39, 0.6);
+  border: 1px solid var(--painel-borda);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.preco-card h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texto-dim);
+  margin: 0 0 10px;
+}
+.preco-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+.preco-row__in { display: flex; align-items: center; gap: 6px; }
+.preco-row__in em, .preco-row em { font-style: normal; font-size: 11px; color: var(--texto-dim); }
+.preco-row input { width: 96px; text-align: right; }
+.preco-mini { width: 60px !important; }
+
+.doc__valores thead th {
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  padding-bottom: 4px;
+}
+.doc__assinatura { display: flex; gap: 40px; margin-top: 32px; }
+.doc__assinatura > div { flex: 1; }
+.doc__assinatura span { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+.doc__linha { border-bottom: 1px solid #1e293b; height: 28px; }
 
 /* ============================ responsivo ============================ */
 @media (max-width: 640px) {

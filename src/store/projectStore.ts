@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import type {
   AcabamentoBorda,
   Ambiente,
@@ -17,6 +16,15 @@ import {
   trechosPadrao,
 } from "@/domain/presets";
 import { TABELA_PADRAO, type TabelaPrecos } from "@/domain/tabelaPrecos";
+import {
+  carregarProjeto,
+  carregarTabela,
+  excluirProjeto as dbExcluir,
+  idProjetoAtual,
+  listarProjetos,
+  salvarProjeto,
+  salvarTabela,
+} from "@/lib/db";
 
 export type Aba = "pedras" | "componentes" | "medidas" | "ambientes";
 export type ModoVisualizacao = "2d" | "3d";
@@ -24,20 +32,27 @@ export type ModoVisualizacao = "2d" | "3d";
 interface ProjectState {
   projeto: Projeto;
   tabela: TabelaPrecos;
+  lista: Projeto[];
+  carregado: boolean;
 
   // UI
   aba: Aba;
   modo: ModoVisualizacao;
   apresentacao: boolean;
 
-  // ações de UI
   setAba: (aba: Aba) => void;
   setModo: (modo: ModoVisualizacao) => void;
   toggleModo: () => void;
   setApresentacao: (v: boolean) => void;
 
-  // ações de projeto
-  novoProjeto: (ambiente?: Ambiente) => void;
+  // ciclo de vida
+  hidratar: () => Promise<void>;
+  recarregarLista: () => Promise<void>;
+  novoProjeto: (ambiente?: Ambiente) => Promise<void>;
+  abrirProjeto: (id: string) => Promise<void>;
+  excluirProjeto: (id: string) => Promise<void>;
+
+  // projeto
   aplicarAmbiente: (ambiente: Ambiente) => void;
   setNome: (nome: string) => void;
   setCliente: (patch: Partial<Projeto["cliente"]>) => void;
@@ -52,9 +67,11 @@ interface ProjectState {
   removeRecorte: (id: string) => void;
   addComplemento: (c: Omit<Complemento, "id">) => void;
   removeComplemento: (id: string) => void;
+
+  // admin
+  setTabela: (patch: Partial<TabelaPrecos>) => void;
 }
 
-/** aplica um patch no projeto e atualiza o carimbo de tempo + marca como local */
 function commit(projeto: Projeto, mut: (p: Projeto) => void): Projeto {
   const p: Projeto = structuredClone(projeto);
   mut(p);
@@ -63,145 +80,134 @@ function commit(projeto: Projeto, mut: (p: Projeto) => void): Projeto {
   return p;
 }
 
-export const useProjectStore = create<ProjectState>()(
-  persist(
-    (set) => ({
-      projeto: projetoNovo("pia"),
-      tabela: TABELA_PADRAO,
+export const useProjectStore = create<ProjectState>()((set, get) => {
+  /** aplica um patch no projeto e grava no disco */
+  const alterar = (mut: (p: Projeto) => void) => {
+    const projeto = commit(get().projeto, mut);
+    set({ projeto });
+    void salvarProjeto(projeto);
+  };
 
-      aba: "ambientes",
-      modo: "2d",
-      apresentacao: false,
+  return {
+    projeto: projetoNovo("pia"),
+    tabela: TABELA_PADRAO,
+    lista: [],
+    carregado: false,
 
-      setAba: (aba) => set({ aba }),
-      setModo: (modo) => set({ modo }),
-      toggleModo: () => set((s) => ({ modo: s.modo === "2d" ? "3d" : "2d" })),
-      setApresentacao: (apresentacao) => set({ apresentacao }),
+    aba: "ambientes",
+    modo: "2d",
+    apresentacao: false,
 
-      novoProjeto: (ambiente = "pia") =>
-        set({ projeto: projetoNovo(ambiente), aba: "medidas", apresentacao: false }),
+    setAba: (aba) => set({ aba }),
+    setModo: (modo) => set({ modo }),
+    toggleModo: () => set((s) => ({ modo: s.modo === "2d" ? "3d" : "2d" })),
+    setApresentacao: (apresentacao) => set({ apresentacao }),
 
-      aplicarAmbiente: (ambiente) =>
-        set((s) => {
-          const preset = PRESETS[ambiente];
-          return {
-            projeto: commit(s.projeto, (p) => {
-              p.ambiente = ambiente;
-              p.bancada.formato = preset.formato;
-              p.bancada.trechos = trechosPadrao(preset.formato, preset.profundidade);
-              // frontão conforme o preset
-              p.complementos = p.complementos.filter((c) => c.tipo !== "frontao");
-              if (preset.comFrontao) {
-                p.complementos.push({
-                  id: novoId("cmp"),
-                  tipo: "frontao",
-                  altura: DEFAULTS.frontao,
-                  trechos: p.bancada.trechos.map((_, i) => i),
-                });
-              }
-              if (preset.comSaia && !p.complementos.some((c) => c.tipo === "saia")) {
-                p.complementos.push({
-                  id: novoId("cmp"),
-                  tipo: "saia",
-                  altura: DEFAULTS.saia,
-                  trechos: p.bancada.trechos.map((_, i) => i),
-                });
-              }
-            }),
-          };
-        }),
-
-      setNome: (nome) => set((s) => ({ projeto: commit(s.projeto, (p) => void (p.nome = nome)) })),
-
-      setCliente: (patch) =>
-        set((s) => ({
-          projeto: commit(s.projeto, (p) => {
-            p.cliente = { ...p.cliente, ...patch };
-          }),
-        })),
-
-      setFormato: (formato) =>
-        set((s) => ({
-          projeto: commit(s.projeto, (p) => {
-            const prof = p.bancada.trechos[0]?.profundidade ?? PRESETS[p.ambiente].profundidade;
-            p.bancada.formato = formato;
-            const alvo = trechosPadrao(formato, prof).length;
-            const atual = p.bancada.trechos;
-            if (atual.length < alvo) {
-              while (p.bancada.trechos.length < alvo) {
-                p.bancada.trechos.push({ comprimento: 1800, profundidade: prof });
-              }
-            } else if (atual.length > alvo) {
-              p.bancada.trechos = atual.slice(0, alvo);
-            }
-          }),
-        })),
-
-      setTrecho: (index, patch) =>
-        set((s) => ({
-          projeto: commit(s.projeto, (p) => {
-            const t = p.bancada.trechos[index];
-            if (t) p.bancada.trechos[index] = { ...t, ...patch };
-          }),
-        })),
-
-      setEspessura: (mm) =>
-        set((s) => ({ projeto: commit(s.projeto, (p) => void (p.bancada.espessura = mm)) })),
-
-      setAlturaInstalacao: (mm) =>
-        set((s) => ({
-          projeto: commit(s.projeto, (p) => void (p.bancada.alturaInstalacao = mm)),
-        })),
-
-      setMaterial: (material) =>
-        set((s) => ({ projeto: commit(s.projeto, (p) => void (p.material = material)) })),
-
-      setAcabamento: (patch) =>
-        set((s) => ({
-          projeto: commit(s.projeto, (p) => {
-            p.acabamentoBorda = { ...p.acabamentoBorda, ...patch };
-          }),
-        })),
-
-      addRecorte: (recorte) =>
-        set((s) => ({
-          projeto: commit(s.projeto, (p) => {
-            p.recortes.push({ ...recorte, id: novoId("rec") });
-          }),
-        })),
-
-      updateRecorte: (id, patch) =>
-        set((s) => ({
-          projeto: commit(s.projeto, (p) => {
-            const idx = p.recortes.findIndex((r) => r.id === id);
-            if (idx >= 0) p.recortes[idx] = { ...p.recortes[idx], ...patch };
-          }),
-        })),
-
-      removeRecorte: (id) =>
-        set((s) => ({
-          projeto: commit(s.projeto, (p) => {
-            p.recortes = p.recortes.filter((r) => r.id !== id);
-          }),
-        })),
-
-      addComplemento: (c) =>
-        set((s) => ({
-          projeto: commit(s.projeto, (p) => {
-            p.complementos.push({ ...c, id: novoId("cmp") });
-          }),
-        })),
-
-      removeComplemento: (id) =>
-        set((s) => ({
-          projeto: commit(s.projeto, (p) => {
-            p.complementos = p.complementos.filter((c) => c.id !== id);
-          }),
-        })),
-    }),
-    {
-      name: "df-projeto-atual",
-      partialize: (s) => ({ projeto: s.projeto, tabela: s.tabela }),
+    hidratar: async () => {
+      const tabelaSalva = await carregarTabela();
+      const id = idProjetoAtual.get();
+      let projeto = id ? await carregarProjeto(id) : undefined;
+      if (!projeto) {
+        projeto = projetoNovo("pia");
+        await salvarProjeto(projeto);
+        idProjetoAtual.set(projeto.id);
+      }
+      const lista = await listarProjetos();
+      set({
+        projeto,
+        tabela: tabelaSalva ?? TABELA_PADRAO,
+        lista,
+        carregado: true,
+      });
     },
-  ),
-);
+
+    recarregarLista: async () => set({ lista: await listarProjetos() }),
+
+    novoProjeto: async (ambiente = "pia") => {
+      const projeto = projetoNovo(ambiente);
+      await salvarProjeto(projeto);
+      idProjetoAtual.set(projeto.id);
+      set({ projeto, aba: "medidas", apresentacao: false });
+      await get().recarregarLista();
+    },
+
+    abrirProjeto: async (id) => {
+      const projeto = await carregarProjeto(id);
+      if (!projeto) return;
+      idProjetoAtual.set(id);
+      set({ projeto, aba: "medidas", apresentacao: false });
+    },
+
+    excluirProjeto: async (id) => {
+      await dbExcluir(id);
+      if (get().projeto.id === id) {
+        idProjetoAtual.clear();
+        await get().hidratar();
+      } else {
+        await get().recarregarLista();
+      }
+    },
+
+    aplicarAmbiente: (ambiente) =>
+      alterar((p) => {
+        const preset = PRESETS[ambiente];
+        p.ambiente = ambiente;
+        p.bancada.formato = preset.formato;
+        p.bancada.trechos = trechosPadrao(preset.formato, preset.profundidade);
+        p.complementos = p.complementos.filter((c) => c.tipo !== "frontao" && c.tipo !== "saia");
+        const todos = p.bancada.trechos.map((_, i) => i);
+        if (preset.comFrontao) {
+          p.complementos.push({ id: novoId("cmp"), tipo: "frontao", altura: DEFAULTS.frontao, trechos: todos });
+        }
+        if (preset.comSaia) {
+          p.complementos.push({ id: novoId("cmp"), tipo: "saia", altura: DEFAULTS.saia, trechos: todos });
+        }
+      }),
+
+    setNome: (nome) => alterar((p) => void (p.nome = nome)),
+    setCliente: (patch) => alterar((p) => void (p.cliente = { ...p.cliente, ...patch })),
+
+    setFormato: (formato) =>
+      alterar((p) => {
+        const prof = p.bancada.trechos[0]?.profundidade ?? PRESETS[p.ambiente].profundidade;
+        p.bancada.formato = formato;
+        const alvo = trechosPadrao(formato, prof).length;
+        while (p.bancada.trechos.length < alvo) {
+          p.bancada.trechos.push({ comprimento: 1800, profundidade: prof });
+        }
+        if (p.bancada.trechos.length > alvo) {
+          p.bancada.trechos = p.bancada.trechos.slice(0, alvo);
+        }
+      }),
+
+    setTrecho: (index, patch) =>
+      alterar((p) => {
+        const t = p.bancada.trechos[index];
+        if (t) p.bancada.trechos[index] = { ...t, ...patch };
+      }),
+
+    setEspessura: (mm) => alterar((p) => void (p.bancada.espessura = mm)),
+    setAlturaInstalacao: (mm) => alterar((p) => void (p.bancada.alturaInstalacao = mm)),
+    setMaterial: (material) => alterar((p) => void (p.material = material)),
+    setAcabamento: (patch) => alterar((p) => void (p.acabamentoBorda = { ...p.acabamentoBorda, ...patch })),
+
+    addRecorte: (recorte) => alterar((p) => void p.recortes.push({ ...recorte, id: novoId("rec") })),
+    updateRecorte: (id, patch) =>
+      alterar((p) => {
+        const idx = p.recortes.findIndex((r) => r.id === id);
+        if (idx >= 0) p.recortes[idx] = { ...p.recortes[idx], ...patch };
+      }),
+    removeRecorte: (id) => alterar((p) => void (p.recortes = p.recortes.filter((r) => r.id !== id))),
+
+    addComplemento: (c) => alterar((p) => void p.complementos.push({ ...c, id: novoId("cmp") })),
+    removeComplemento: (id) =>
+      alterar((p) => void (p.complementos = p.complementos.filter((c) => c.id !== id))),
+
+    setTabela: (patch) =>
+      set((s) => {
+        const tabela = { ...s.tabela, ...patch };
+        void salvarTabela(tabela);
+        return { tabela };
+      }),
+  };
+});
