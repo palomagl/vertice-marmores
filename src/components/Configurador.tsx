@@ -41,7 +41,16 @@ export function Configurador() {
   const nomeMaterial = mat?.nome ?? "Sem material";
 
   return (
-    <div className={`simu ${apresentacao ? "simu--apresentacao" : ""}`}>
+    <>
+      <div className="rotacione">
+        <div className="rotacione__ico">📱</div>
+        <strong>Gire o celular</strong>
+        <span>
+          O projeto da bancada é feito com a tela deitada. Vire o aparelho para o
+          lado para continuar.
+        </span>
+      </div>
+      <div className={`simu ${apresentacao ? "simu--apresentacao" : ""}`}>
       {!apresentacao && (
         <header className="simu__header">
           <Link to="/" className="simu__voltar" title="Meus projetos">‹</Link>
@@ -143,6 +152,7 @@ export function Configurador() {
           </>
         )}
       </footer>
-    </div>
+      </div>
+    </>
   );
 }

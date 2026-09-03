@@ -694,11 +694,65 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ===================== responsivo ===================== */
-@media (max-width: 960px) {
-  .simu__header { flex-wrap: wrap; }
-  .simu__left, .simu__right {
-    position: static; width: auto; margin: 10px 16px 0; max-height: 34vh; box-shadow: none;
+
+/* aviso: no celular em pé, pede para girar (o configurador é feito para paisagem) */
+.rotacione { display: none; }
+@media (max-width: 860px) and (orientation: portrait) {
+  .simu { display: none !important; }
+  .rotacione {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 40px;
+    text-align: center;
+    background: var(--bg);
+    color: var(--texto);
   }
-  .simu__palco { min-height: 300px; }
-  .simu { overflow-y: auto; }
+  .rotacione__ico {
+    font-size: 60px;
+    animation: gira 2.4s ease-in-out infinite;
+  }
+  .rotacione strong { font-size: 17px; }
+  .rotacione span { font-size: 13px; color: var(--texto-dim); max-width: 300px; }
+}
+@keyframes gira {
+  0%, 55%, 100% { transform: rotate(0deg); }
+  25%, 40% { transform: rotate(90deg); }
+}
+
+/* tela estreita em paisagem (celular deitado, tablet pequeno): layout flutuante compacto */
+@media (max-width: 1024px) {
+  .simu__header { padding: 4px 10px 2px; }
+  .simu__nome { font-size: 12.5px; padding: 6px 12px; }
+  .ambientes-strip { padding: 4px 10px 6px; gap: 8px; }
+  .ambiente-card { flex: 0 0 132px; height: 68px; }
+  .ambiente-card__label { font-size: 11px; }
+  .medidas-bar { padding: 2px 10px 6px; }
+  .medidas-bar__campos { gap: 12px; margin-top: 4px; }
+  .medidas-bar__campo { flex-basis: 150px; min-width: 140px; }
+
+  .simu__left, .simu__right { width: 244px; top: 8px; bottom: 8px; }
+  .simu__left { left: 8px; }
+  .simu__right { right: 8px; }
+  .simu:not(.simu--apresentacao) .simu__svg { padding: 8px 256px 62px 256px; }
+  .regua { left: 256px; right: 256px; bottom: 6px; padding: 6px 10px 8px; }
+  .regua__tabs { margin-bottom: 5px; }
+
+  .simu__cta { padding: 6px 10px; gap: 6px; }
+  .simu__preco strong { font-size: 16px; }
+  .btn-primario { padding: 9px 16px; font-size: 13px; }
+  .btn-toggle { padding: 9px 14px; font-size: 12.5px; }
+}
+
+@media (max-width: 680px) {
+  .ambiente-card { flex: 0 0 108px; height: 58px; }
+  .simu__left, .simu__right { width: 200px; }
+  .simu:not(.simu--apresentacao) .simu__svg { padding: 6px 212px 58px 212px; }
+  .regua { left: 212px; right: 212px; }
+  .medidas-bar__toggle { display: none; }
 }
