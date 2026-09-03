@@ -1,83 +1,145 @@
+<div align="center">
+
 # DF Mármores — Projeto e Orçamento
 
-Web app do **vendedor** da marmoraria: monta o projeto da bancada junto com o
-cliente, mostra em 2D e 3D, e fecha o orçamento na hora.
+**Monte a bancada com o cliente, veja em 3D e feche o orçamento na hora.**
 
-Baseado em [`especificacao-app-marmoraria.md`](./especificacao-app-marmoraria.md).
-Referência de UX: `simuladormarmoraria.com.br` (mesma nomenclatura e navegação).
+Web app do vendedor da marmoraria: desenha a peça com medidas reais, mostra em
+3D com a pedra escolhida e calcula o preço final — funcionando offline, na casa
+do cliente.
 
-## Rodar
+<img src="docs/hero.jpg" alt="Configurador 3D" width="820">
+
+</div>
+
+---
+
+## O que faz
+
+- **Ambientes** — Pia, Gourmet, Banheiro, Ilha, Balcão, Lavanderia. Cada um já
+  monta o formato certo: pia com o furo da cuba, ilha com as laterais de pedra
+  descendo até o piso, gourmet em L com cuba e cooktop.
+- **Medidas** — Linear / Em L / Em P / Em U, com sliders ou digitando. O 3D e o
+  desenho 2D atualizam ao vivo.
+- **Pedras** — 25 materiais em 4 famílias (granito, mármore, quartzito, quartzo),
+  com foto real da chapa aplicada na peça inteira.
+- **Componentes nos mínimos detalhes** — frontão e saia por lado, cuba (modelo,
+  formato, posição lateral e fundo↔frente), cooktop, furos. Régua abaixo do 3D
+  para arrastar cada recorte ao longo da peça.
+- **Orçamento ao vivo** — por retângulo envolvente da chapa, borda acabada,
+  recortes, complementos e instalação. Custo e margem só aparecem para o
+  vendedor; o modo apresentação esconde tudo isso quando a tela vira pro cliente.
+- **Documentos** — proposta comercial e ordem de serviço para a oficina, prontos
+  para imprimir ou salvar em PDF (o mesmo projeto, views diferentes).
+- **Offline** — tudo grava no navegador (IndexedDB). Sem internet, continua
+  funcionando.
+
+<table>
+  <tr>
+    <td><img src="docs/editor.jpg" alt="Bancada em L com cuba e cooktop" width="410"></td>
+    <td><img src="docs/ilha.jpg" alt="Ilha com laterais de pedra" width="410"></td>
+  </tr>
+</table>
+
+## Stack
+
+| Camada | Escolha |
+|---|---|
+| Base | React 19 + Vite 7 + TypeScript |
+| 3D | Three.js + React Three Fiber (`ExtrudeGeometry` da mesma geometria 2D) |
+| 2D | SVG puro (imprime vetorial na proposta) |
+| Estado | Zustand |
+| Offline | Dexie (IndexedDB) + PWA |
+| Documentos | HTML + `@media print` |
+| Backend (opcional) | Supabase |
+| Deploy | Vercel |
+
+## Rodando
+
+Precisa de **Node 20+**.
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # typecheck + build de produção
-npm run preview
+npm run build      # typecheck + build de produção (dist/)
+npm run preview    # serve o build
 ```
 
-Backend é opcional no começo — sem `.env.local` o app roda 100% local
-(que é o cenário da casa do cliente, seção 11). Para ligar o Supabase:
+Sem `.env.local` o app roda 100% local — que é o cenário da casa do cliente.
+Para ligar o Supabase depois:
 
 ```bash
-cp .env.example .env.local   # e preencher as chaves
+cp .env.example .env.local   # e preencher VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
 ```
+
+## Deploy na Vercel
+
+1. Importe o repositório na Vercel (framework: **Vite**, detecta sozinho).
+2. O `vercel.json` já redireciona todas as rotas para o `index.html`, então
+   `/editor`, `/proposta` etc. não dão 404 ao recarregar.
+3. Se for usar Supabase, cadastre as variáveis `VITE_SUPABASE_URL` e
+   `VITE_SUPABASE_ANON_KEY` no painel do projeto — nunca no código.
 
 ## Como está organizado
 
-O coração é **um modelo de dados só** (`src/domain/project.ts`). 2D, 3D, orçamento
-e proposta são todos *views* dele. **Toda medida é milímetro inteiro**; a conversão
-para cm mora só em `src/domain/units.ts` e nos campos de entrada.
+O coração é **um modelo de dados só** ([`src/domain/project.ts`](src/domain/project.ts)).
+2D, 3D, orçamento, proposta e ordem de serviço são todos *views* dele.
+**Toda medida é milímetro inteiro**; a conversão para centímetro mora só em
+[`src/domain/units.ts`](src/domain/units.ts) e nos campos de entrada.
 
-| Pasta | Papel |
-|---|---|
-| `src/domain/project.ts` | o objeto `Projeto` — a fonte única |
-| `src/domain/units.ts` | única conversão mm ↔ cm ↔ m² ↔ R$ |
-| `src/domain/presets.ts` | defaults e presets por ambiente (Pia, Gourmet, Banheiro, Ilha, Balcão) |
-| `src/domain/geometry.ts` | JSON → contorno, bbox, segmentos de parede, posição dos recortes |
-| `src/domain/quote.ts` | orçamento por **retângulo envolvente** (seção 9) |
-| `src/domain/tabelaPrecos.ts` | tabela de preços default (vai para o admin depois) |
-| `src/domain/catalogo.ts` | materiais e cubas de exemplo (trocar pelo estoque real) |
-| `src/store/projectStore.ts` | estado (Zustand) — grava no Dexie a cada alteração |
-| `src/lib/db.ts` | banco local (Dexie/IndexedDB): projetos + tabela de preços |
-| `src/components/Drawing2D.tsx` | **SVG puro** com cotas — imprime vetorial na proposta |
-| `src/components/Scene3D.tsx` | `ExtrudeGeometry` do mesmo contorno, recortes como `holes`, carregado sob demanda |
-| `src/components/paineis.tsx` | as 4 abas: Pedras · Componentes · Medidas · Ambientes |
-| `src/pages/Projetos.tsx` | tela inicial: lista + busca por cliente |
-| `src/pages/Proposta.tsx` | proposta comercial, impressão via `@media print` |
-| `src/pages/OrdemServico.tsx` | ordem de serviço da oficina (mesmo JSON, sem valores) |
-| `src/pages/Precos.tsx` | admin da tabela de preços |
-| `supabase/schema.sql` | esquema inicial (uma empresa, sem multi-tenant) |
+```
+src/
+  domain/
+    project.ts        o objeto Projeto — a fonte única
+    presets.ts        defaults + montagem de cada ambiente
+    geometry.ts       JSON → contorno, bordas de parede, posição dos recortes
+    quote.ts          orçamento por retângulo envolvente
+    catalogo.ts       25 pedras (nome, preço, família, textura)
+    stoneTexture.ts   textura de pedra procedural (fallback sem foto)
+    tabelaPrecos.ts   tabela de preços padrão (editável no admin)
+  store/projectStore.ts   estado (Zustand) + gravação no Dexie
+  components/
+    Configurador.tsx  layout do configurador
+    Scene3D.tsx       cena Three.js
+    Drawing2D.tsx     desenho SVG com cotas
+    DimensionBar.tsx  formato + sliders de medida
+    AmbienteStrip.tsx faixa de ambientes
+    PositionRuler.tsx régua de posição arrastável
+    paineis.tsx       painel de características + catálogo de pedras
+  pages/
+    Projetos.tsx      lista inicial (busca por cliente)
+    Proposta.tsx      proposta comercial (impressão)
+    OrdemServico.tsx  ordem de serviço da oficina
+    Precos.tsx        admin da tabela de preços
+public/
+  ambientes/          fotos dos ambientes
+  chapas/             fotos das chapas (ver LISTA.md)
+```
 
-Rotas: `/` (lista) · `/editor` · `/proposta` · `/ordem-servico` · `/precos`.
+## Fotos das chapas
 
-## O que já funciona
+As pedras usam foto real quando existe `public/chapas/<id>.jpg`, senão caem numa
+textura desenhada por código. A lista dos nomes de arquivo está em
+[`public/chapas/LISTA.md`](public/chapas/LISTA.md). É só soltar o arquivo na
+pasta — nenhuma mudança de código.
 
-- Lista de projetos com busca, novo/abrir/excluir — tudo no banco local (offline)
-- 4 abas com a navegação da referência
-- Presets de ambiente carregando profundidade / altura / complementos
-- Formatos Linear · Em L · Em P · Em U com medidas por trecho
-- Desenho 2D ao vivo: cotas em cm, hachura nas bordas de parede, frontão/saia
-- 3D ao vivo (extrusão + furos + frontão/saia) com toggle 2D/3D
-- Componentes: área molhada (3 cantos), cuba, cooktop, furo de torneira
-- Grid de pedras + acabamento de borda
-- Orçamento ao vivo (retângulo envolvente, borda acabada, recortes, complementos, instalação)
-- Modo apresentação (esconde custo e margem)
-- Proposta comercial e ordem de serviço imprimíveis / PDF
-- Admin da tabela de preços, auto-salvo
+## Roadmap
 
-## Próximos passos (ordem da seção 14)
+- [ ] Enviar projeto no WhatsApp
+- [ ] Exportar / importar projeto (.json) para backup
+- [ ] Sincronização com Supabase (backup na nuvem, vários aparelhos)
+- [ ] AR — ver a bancada no ambiente pelo celular (`<model-viewer>`)
+- [ ] Calibração de tela + botão 1:1 (seção 5 da especificação)
+- [ ] Régua de posição por trecho no L / U
+- [ ] Testes automáticos nas contas do orçamento
 
-1. Cuba esculpida com geometria própria (hoje é recorte retangular)
-2. Recortes arrastáveis no 2D com cota viva a partir da borda
-3. Sincronização com Supabase + indicador local/sincronizado + fila offline
-4. AR com `<model-viewer>` + `GLTFExporter` / `USDZExporter`
-5. Calibração de tela (cartão ISO) e botão 1:1
-6. Envio no WhatsApp
-7. Ficha de medição na obra
+## Especificação
 
-## Fora do caminho crítico — pedir para a DF agora
+O documento de produto completo está em
+[`especificacao-app-marmoraria.md`](especificacao-app-marmoraria.md).
 
-- Fotos das chapas do estoque (ver `public/chapas/LEIA-ME.txt`)
-- Tabela de preços real (m², acabamentos, recortes, instalação, frete)
-- Tamanho das chapas dos fornecedores
-- Logo e dados para a proposta (CNPJ, contato)
+---
+
+<div align="center">
+<sub>DF Mármores e Granitos</sub>
+</div>
