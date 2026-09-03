@@ -37,36 +37,43 @@ para cm mora só em `src/domain/units.ts` e nos campos de entrada.
 | `src/domain/quote.ts` | orçamento por **retângulo envolvente** (seção 9) |
 | `src/domain/tabelaPrecos.ts` | tabela de preços default (vai para o admin depois) |
 | `src/domain/catalogo.ts` | materiais e cubas de exemplo (trocar pelo estoque real) |
-| `src/store/projectStore.ts` | estado (Zustand + persist local) |
+| `src/store/projectStore.ts` | estado (Zustand) — grava no Dexie a cada alteração |
+| `src/lib/db.ts` | banco local (Dexie/IndexedDB): projetos + tabela de preços |
 | `src/components/Drawing2D.tsx` | **SVG puro** com cotas — imprime vetorial na proposta |
-| `src/components/Scene3D.tsx` | `ExtrudeGeometry` do mesmo contorno, recortes como `holes` |
+| `src/components/Scene3D.tsx` | `ExtrudeGeometry` do mesmo contorno, recortes como `holes`, carregado sob demanda |
 | `src/components/paineis.tsx` | as 4 abas: Pedras · Componentes · Medidas · Ambientes |
+| `src/pages/Projetos.tsx` | tela inicial: lista + busca por cliente |
 | `src/pages/Proposta.tsx` | proposta comercial, impressão via `@media print` |
+| `src/pages/OrdemServico.tsx` | ordem de serviço da oficina (mesmo JSON, sem valores) |
+| `src/pages/Precos.tsx` | admin da tabela de preços |
 | `supabase/schema.sql` | esquema inicial (uma empresa, sem multi-tenant) |
+
+Rotas: `/` (lista) · `/editor` · `/proposta` · `/ordem-servico` · `/precos`.
 
 ## O que já funciona
 
+- Lista de projetos com busca, novo/abrir/excluir — tudo no banco local (offline)
 - 4 abas com a navegação da referência
 - Presets de ambiente carregando profundidade / altura / complementos
 - Formatos Linear · Em L · Em P · Em U com medidas por trecho
-- Desenho 2D ao vivo com cotas em cm e hachura nas bordas de parede
-- 3D ao vivo (extrusão + furos dos recortes) com toggle 2D/3D
+- Desenho 2D ao vivo: cotas em cm, hachura nas bordas de parede, frontão/saia
+- 3D ao vivo (extrusão + furos + frontão/saia) com toggle 2D/3D
 - Componentes: área molhada (3 cantos), cuba, cooktop, furo de torneira
 - Grid de pedras + acabamento de borda
 - Orçamento ao vivo (retângulo envolvente, borda acabada, recortes, complementos, instalação)
 - Modo apresentação (esconde custo e margem)
-- Proposta comercial imprimível / PDF
+- Proposta comercial e ordem de serviço imprimíveis / PDF
+- Admin da tabela de preços, auto-salvo
 
 ## Próximos passos (ordem da seção 14)
 
-1. Cuba esculpida e recortes com posição cotada a partir da borda
-2. Complementos como geometria no 3D (frontão, saia)
-3. Tela de admin da tabela de preços
-4. Ordem de serviço para a oficina (mesmo JSON, sem valores)
-5. AR com `<model-viewer>` + `GLTFExporter` / `USDZExporter`
-6. Offline real: Dexie + fila de sincronização + lista de projetos
-7. Calibração de tela (cartão ISO) e botão 1:1
-8. Envio no WhatsApp
+1. Cuba esculpida com geometria própria (hoje é recorte retangular)
+2. Recortes arrastáveis no 2D com cota viva a partir da borda
+3. Sincronização com Supabase + indicador local/sincronizado + fila offline
+4. AR com `<model-viewer>` + `GLTFExporter` / `USDZExporter`
+5. Calibração de tela (cartão ISO) e botão 1:1
+6. Envio no WhatsApp
+7. Ficha de medição na obra
 
 ## Fora do caminho crítico — pedir para a DF agora
 
