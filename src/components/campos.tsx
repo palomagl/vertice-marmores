@@ -52,6 +52,42 @@ export function CampoCm({ label, valueMm, onChangeMm, min = 0, max = 600 }: Camp
   );
 }
 
+interface SliderCmProps {
+  label: string;
+  valueMm: number;
+  onChangeMm: (mm: number) => void;
+  minMm: number;
+  maxMm: number;
+  stepMm?: number;
+}
+
+/** Slider ("barrinha") em mm, mostrando o valor em metros no canto. */
+export function SliderCm({
+  label,
+  valueMm,
+  onChangeMm,
+  minMm,
+  maxMm,
+  stepMm = 10,
+}: SliderCmProps) {
+  return (
+    <div className="slider">
+      <div className="slider__topo">
+        <span>{label}</span>
+        <strong>{mmParaMetrosLabel(valueMm)} m</strong>
+      </div>
+      <input
+        type="range"
+        min={minMm}
+        max={maxMm}
+        step={stepMm}
+        value={valueMm}
+        onChange={(e) => onChangeMm(Number(e.target.value))}
+      />
+    </div>
+  );
+}
+
 interface SegmentedProps<T extends string> {
   value: T;
   options: { value: T; label: string }[];

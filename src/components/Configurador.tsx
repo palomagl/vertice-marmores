@@ -1,42 +1,31 @@
 /**
- * Layout do configurador (especificação, seção 4.1):
- * visualização em tela cheia, painéis flutuantes por cima, CTA fixo embaixo.
- * Pensado para tablet na horizontal, que é como o vendedor usa.
+ * Configurador — visualização em tela cheia, painéis flutuantes por cima,
+ * faixa de ambientes no topo, barra de medidas, CTA embaixo.
+ * Layout inspirado no simuladormarmoraria.com.br.
  */
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { MATERIAIS } from "@/domain/catalogo";
-import { AMBIENTE_LABEL, FORMATO_LABEL } from "@/domain/presets";
-import { useProjectStore, type Aba } from "@/store/projectStore";
+import { calcularOrcamento } from "@/domain/quote";
+import { brl } from "@/domain/units";
+import { useProjectStore } from "@/store/projectStore";
+import { AmbienteStrip } from "./AmbienteStrip";
+import { DimensionBar } from "./DimensionBar";
 import { Drawing2D } from "./Drawing2D";
+import { PainelComponentes, PainelPedras } from "./paineis";
+import { PainelOrcamento } from "./PainelOrcamento";
 
-// Three.js só carrega quando o vendedor abre o 3D.
 const Scene3D = lazy(() =>
   import("./Scene3D").then((m) => ({ default: m.Scene3D })),
 );
-import {
-  PainelAmbientes,
-  PainelComponentes,
-  PainelMedidas,
-  PainelPedras,
-} from "./paineis";
-import { PainelOrcamento } from "./PainelOrcamento";
-
-const ABAS: { id: Aba; label: string }[] = [
-  { id: "pedras", label: "Pedras" },
-  { id: "componentes", label: "Componentes" },
-  { id: "medidas", label: "Medidas" },
-  { id: "ambientes", label: "Ambientes" },
-];
 
 function corDoMaterial(id: string | undefined): string {
-  return MATERIAIS.find((m) => m.id === id)?.corFallback ?? "#d8d8d5";
+  return MATERIAIS.find((m) => m.id === id)?.corFallback ?? "#dedede";
 }
 
 export function Configurador() {
   const projeto = useProjectStore((s) => s.projeto);
-  const aba = useProjectStore((s) => s.aba);
-  const setAba = useProjectStore((s) => s.setAba);
+  const tabela = useProjectStore((s) => s.tabela);
   const modo = useProjectStore((s) => s.modo);
   const toggleModo = useProjectStore((s) => s.toggleModo);
   const apresentacao = useProjectStore((s) => s.apresentacao);
@@ -44,123 +33,103 @@ export function Configurador() {
   const setNome = useProjectStore((s) => s.setNome);
   const novoProjeto = useProjectStore((s) => s.novoProjeto);
 
-  const [menuAberto, setMenuAberto] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [preco, setPreco] = useState(false);
   const cor = corDoMaterial(projeto.material?.id ?? undefined);
+  const total = useMemo(
+    () => calcularOrcamento(projeto, tabela).total,
+    [projeto, tabela],
+  );
+  const nomeMaterial = projeto.material?.nome ?? "Sem material";
 
   return (
-    <div className={`config ${apresentacao ? "config--apresentacao" : ""}`}>
-      {/* área de visualização, tela cheia */}
-      <div className="config__palco">
-        {modo === "3d" ? (
-          <Suspense fallback={<div className="palco-carregando">Carregando 3D…</div>}>
-            <Scene3D projeto={projeto} cor={cor} apresentacao={apresentacao} />
-          </Suspense>
-        ) : (
-          <Drawing2D projeto={projeto} cor={cor} className="config__svg" />
-        )}
-      </div>
-
-      {/* barra superior */}
+    <div className={`simu ${apresentacao ? "simu--apresentacao" : ""}`}>
       {!apresentacao && (
-        <header className="config__topo">
-          <div className="config__proj">
-            <input
-              className="config__nome"
-              placeholder="Nome do projeto — ex: Julia · Pia cozinha"
-              value={projeto.nome}
-              onChange={(e) => setNome(e.target.value)}
-            />
-            <span className="config__tags">
-              {AMBIENTE_LABEL[projeto.ambiente]} · {FORMATO_LABEL[projeto.bancada.formato]} ·{" "}
-              <span className={projeto.sync === "local" ? "tag-local" : "tag-sync"}>
-                {projeto.sync === "local" ? "salvo localmente" : "sincronizado"}
-              </span>
-            </span>
-          </div>
-
-          <div className="config__acoes-topo">
-            <button className="btn-ghost" onClick={() => setMenuAberto((v) => !v)}>
-              ⋮
-            </button>
-            {menuAberto && (
-              <div className="menu" onMouseLeave={() => setMenuAberto(false)}>
-                <button
-                  onClick={() => {
-                    setApresentacao(true);
-                    setMenuAberto(false);
-                  }}
-                >
+        <header className="simu__header">
+          <Link to="/" className="simu__voltar" title="Meus projetos">‹</Link>
+          <input
+            className="simu__nome"
+            placeholder="Nome do projeto — ex: Julia · Pia cozinha"
+            value={projeto.nome}
+            onChange={(e) => setNome(e.target.value)}
+          />
+          <span className={`simu__sync ${projeto.sync === "local" ? "tag-local" : "tag-sync"}`}>
+            {projeto.sync === "local" ? "salvo localmente" : "sincronizado"}
+          </span>
+          <div className="simu__menu-wrap">
+            <button className="btn-ico" onClick={() => setMenu((v) => !v)}>⋮</button>
+            {menu && (
+              <div className="menu" onMouseLeave={() => setMenu(false)}>
+                <button onClick={() => { setApresentacao(true); setMenu(false); }}>
                   Apresentar ao cliente
                 </button>
-                <Link to="/proposta" onClick={() => setMenuAberto(false)}>
-                  Gerar proposta (PDF)
-                </Link>
-                <Link to="/ordem-servico" onClick={() => setMenuAberto(false)}>
-                  Ordem de serviço (oficina)
-                </Link>
+                <Link to="/proposta" onClick={() => setMenu(false)}>Gerar proposta (PDF)</Link>
+                <Link to="/ordem-servico" onClick={() => setMenu(false)}>Ordem de serviço</Link>
                 <button disabled>Ver na vida real (AR) — em breve</button>
                 <button disabled>Enviar no WhatsApp — em breve</button>
                 <hr />
-                <Link to="/" onClick={() => setMenuAberto(false)}>
-                  Meus projetos
-                </Link>
-                <button
-                  onClick={() => {
-                    void novoProjeto("pia");
-                    setMenuAberto(false);
-                  }}
-                >
+                <Link to="/" onClick={() => setMenu(false)}>Meus projetos</Link>
+                <button onClick={() => { void novoProjeto("pia"); setMenu(false); }}>
                   Novo projeto
                 </button>
-                <Link to="/precos" onClick={() => setMenuAberto(false)}>
-                  Tabela de preços
-                </Link>
+                <Link to="/precos" onClick={() => setMenu(false)}>Tabela de preços</Link>
               </div>
             )}
           </div>
         </header>
       )}
 
-      {/* abas laterais fixas */}
-      {!apresentacao && (
-        <nav className="config__abas">
-          {ABAS.map((a) => (
-            <button
-              key={a.id}
-              className={aba === a.id ? "is-active" : ""}
-              onClick={() => setAba(a.id)}
-            >
-              {a.label}
-            </button>
-          ))}
-        </nav>
-      )}
+      {!apresentacao && <AmbienteStrip />}
+      {!apresentacao && <DimensionBar />}
 
-      {/* painel do conteúdo da aba */}
-      {!apresentacao && (
-        <section className="config__painel">
-          {aba === "ambientes" && <PainelAmbientes />}
-          {aba === "medidas" && <PainelMedidas />}
-          {aba === "componentes" && <PainelComponentes />}
-          {aba === "pedras" && <PainelPedras />}
-        </section>
-      )}
+      <div className="simu__palco">
+        {modo === "3d" && (
+          <div className="simu__badge">
+            <span>PREVIEW 3D</span>
+            <strong>{nomeMaterial}</strong>
+          </div>
+        )}
 
-      {/* orçamento ao vivo */}
-      {!apresentacao && (
-        <aside className="config__orcamento">
-          <PainelOrcamento />
-        </aside>
-      )}
+        {modo === "3d" ? (
+          <Suspense fallback={<div className="simu__loading">Carregando 3D…</div>}>
+            <Scene3D projeto={projeto} cor={cor} apresentacao={apresentacao} />
+          </Suspense>
+        ) : (
+          <Drawing2D projeto={projeto} cor={cor} className="simu__svg" />
+        )}
 
-      {/* CTA fixo embaixo */}
-      <footer className="config__cta">
+        {modo === "3d" && <div className="simu__hint">arraste para girar</div>}
+
+        {!apresentacao && (
+          <>
+            <aside className="simu__left">
+              <PainelComponentes />
+            </aside>
+            <aside className="simu__right">
+              <PainelPedras />
+            </aside>
+          </>
+        )}
+      </div>
+
+      <footer className="simu__cta">
         {apresentacao ? (
           <button className="btn-primario" onClick={() => setApresentacao(false)}>
             Sair da apresentação
           </button>
         ) : (
           <>
+            <div className="simu__preco-wrap">
+              <button className="simu__preco" onClick={() => setPreco((v) => !v)}>
+                <span>Preço estimado</span>
+                <strong>{brl(total)}</strong>
+              </button>
+              {preco && (
+                <div className="simu__preco-pop" onMouseLeave={() => setPreco(false)}>
+                  <PainelOrcamento />
+                </div>
+              )}
+            </div>
             <button className="btn-toggle" onClick={toggleModo}>
               {modo === "2d" ? "Ver em 3D" : "Ver em 2D"}
             </button>

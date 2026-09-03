@@ -1,11 +1,11 @@
 /**
  * 3D — extrusão da mesma geometria 2D (especificação, seção 6).
- * "Modo maquete": cinza limpo por padrão. Textura real de chapa entra depois.
- * Frontão e saia entram como extrusões extras.
+ * Fundo claro, sombra de contato no chão, textura de granito procedural
+ * (placeholder até as fotos reais das chapas). Frontão e saia como extrusões.
  */
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Bounds, Center, OrbitControls } from "@react-three/drei";
+import { Bounds, Center, ContactShadows, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import {
   contornoBancada,
@@ -16,13 +16,38 @@ import type { Projeto } from "@/domain/project";
 
 interface Props {
   projeto: Projeto;
-  /** cor da peça (fallback enquanto não há foto da chapa) */
   cor?: string;
-  /** modo apresentação: fundo neutro + órbita lenta automática (seção 8) */
   apresentacao?: boolean;
 }
 
 const MM = 1000;
+
+/** Speckle de granito gerado em canvas. Placeholder — foto real entra depois. */
+function texturaGranito(cor: string): THREE.CanvasTexture {
+  const s = 512;
+  const c = document.createElement("canvas");
+  c.width = c.height = s;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = cor;
+  ctx.fillRect(0, 0, s, s);
+  const base = new THREE.Color(cor);
+  for (let i = 0; i < 9000; i++) {
+    const x = Math.random() * s;
+    const y = Math.random() * s;
+    const r = Math.random() * 1.8 + 0.3;
+    const d = (Math.random() - 0.5) * 0.5;
+    const cc = base.clone().offsetHSL(0, 0, d);
+    ctx.fillStyle = `rgba(${(cc.r * 255) | 0},${(cc.g * 255) | 0},${(cc.b * 255) | 0},0.5)`;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(3, 3);
+  tex.anisotropy = 4;
+  return tex;
+}
 
 function useSlab(projeto: Projeto) {
   return useMemo(() => {
@@ -59,7 +84,6 @@ function useSlab(projeto: Projeto) {
       depth: projeto.bancada.espessura / MM,
       bevelEnabled: false,
     });
-    // shape em XY, extrusão em Z -> deita a peça: (x,y,z) -> (x, z, -y)
     geo.rotateX(-Math.PI / 2);
     return geo;
   }, [projeto]);
@@ -82,7 +106,6 @@ function useComplementos(projeto: Projeto): Caixa[] {
       const alt = comp.altura / MM;
       const espParede = Math.max(esp, 0.018);
       const segs = segmentosDoComplemento(segmentos, comp);
-      // saia / soleira / pingadeira penduram para baixo; frontão / rodabanca sobem
       const sobe = comp.tipo === "frontao" || comp.tipo === "rodabanca";
 
       segs.forEach((s, i) => {
@@ -92,10 +115,8 @@ function useComplementos(projeto: Projeto): Caixa[] {
         if (len < 0.01) return;
         const mx = (s.a.x + s.b.x) / (2 * MM);
         const my = (s.a.y + s.b.y) / (2 * MM);
-        // normal apontando para dentro (offset para a aba assentar na peça)
-        let nx = -dy / len;
-        let ny = dx / len;
-        // world Z = -y, então o offset em world usa (nx, -ny)
+        const nx = -dy / len;
+        const ny = dx / len;
         const cx = mx + nx * (espParede / 2);
         const cy = my + ny * (espParede / 2);
         const worldY = sobe ? esp + alt / 2 : -alt / 2;
@@ -114,17 +135,18 @@ function useComplementos(projeto: Projeto): Caixa[] {
 function Bancada({ projeto, cor }: { projeto: Projeto; cor: string }) {
   const slab = useSlab(projeto);
   const comps = useComplementos(projeto);
+  const tex = useMemo(() => texturaGranito(cor), [cor]);
 
   return (
-    <Center>
+    <Center disableY>
       <group>
         <mesh geometry={slab} castShadow receiveShadow>
-          <meshStandardMaterial color={cor} roughness={0.55} metalness={0.05} />
+          <meshStandardMaterial map={tex} color="#ffffff" roughness={0.4} metalness={0.02} />
         </mesh>
         {comps.map((c) => (
           <mesh key={c.key} position={c.pos} rotation={[0, c.rotY, 0]} castShadow receiveShadow>
             <boxGeometry args={c.args} />
-            <meshStandardMaterial color={cor} roughness={0.6} metalness={0.05} />
+            <meshStandardMaterial map={tex} color="#ffffff" roughness={0.45} metalness={0.02} />
           </mesh>
         ))}
       </group>
@@ -132,34 +154,44 @@ function Bancada({ projeto, cor }: { projeto: Projeto; cor: string }) {
   );
 }
 
-export function Scene3D({ projeto, cor = "#d8d8d5", apresentacao = false }: Props) {
+export function Scene3D({ projeto, cor = "#dedede", apresentacao = false }: Props) {
   return (
     <Canvas
       shadows
       dpr={[1, 2]}
-      camera={{ position: [2.4, 2, 2.8], fov: 42 }}
+      camera={{ position: [2.6, 2.1, 3], fov: 40 }}
       style={{ width: "100%", height: "100%", display: "block" }}
     >
-      <color attach="background" args={[apresentacao ? "#e9eaec" : "#1f2937"]} />
-      <hemisphereLight intensity={apresentacao ? 0.9 : 0.6} groundColor="#8a8a8a" />
+      <color attach="background" args={[apresentacao ? "#eef0f2" : "#f4f5f6"]} />
+      <hemisphereLight intensity={0.75} groundColor="#c9cdd2" color="#ffffff" />
       <directionalLight
-        position={[4, 6, 3]}
-        intensity={apresentacao ? 1.4 : 1.1}
+        position={[4, 7, 4]}
+        intensity={1.5}
         castShadow
-        shadow-mapSize={[1024, 1024]}
+        shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.0002}
       />
-      <directionalLight position={[-3, 2, -4]} intensity={0.4} />
+      <directionalLight position={[-4, 3, -3]} intensity={0.35} />
 
-      <Bounds fit clip observe margin={1.2}>
+      <Bounds fit clip observe margin={1.25}>
         <Bancada projeto={projeto} cor={cor} />
       </Bounds>
+
+      <ContactShadows
+        position={[0, -0.02, 0]}
+        opacity={0.42}
+        scale={10}
+        blur={2.4}
+        far={2}
+        resolution={1024}
+      />
 
       <OrbitControls
         makeDefault
         enablePan={!apresentacao}
         autoRotate={apresentacao}
         autoRotateSpeed={0.8}
-        minPolarAngle={0.2}
+        minPolarAngle={0.15}
         maxPolarAngle={Math.PI / 2.05}
       />
     </Canvas>
