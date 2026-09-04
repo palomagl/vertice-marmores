@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Configurador } from "@/components/Configurador";
+import { NovoProjetoModal } from "@/components/NovoProjetoModal";
 import { OrdemServico } from "@/pages/OrdemServico";
 import { Precos } from "@/pages/Precos";
 import { Projetos } from "@/pages/Projetos";
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/ordem-servico" element={<OrdemServico />} />
         <Route path="/precos" element={<Precos />} />
       </Routes>
+      <NovoProjetoModal />
     </BrowserRouter>
   );
 }

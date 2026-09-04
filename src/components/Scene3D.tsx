@@ -22,6 +22,8 @@ interface Props {
   /** id do material — se existir /chapas/<id>.jpg, usa a foto real */
   materialId?: string | null;
   apresentacao?: boolean;
+  /** claro | escuro — só para escolher o fundo da cena */
+  tema?: "claro" | "escuro";
 }
 
 const MM = 1000;
@@ -217,7 +219,7 @@ function Bancada({
   );
 }
 
-export function Scene3D({ projeto, params, materialId, apresentacao = false }: Props) {
+export function Scene3D({ projeto, params, materialId, apresentacao = false, tema = "claro" }: Props) {
   // piso desce quando a ilha tem laterais até o chão
   const alturaSaia = Math.max(
     0,
@@ -226,6 +228,11 @@ export function Scene3D({ projeto, params, materialId, apresentacao = false }: P
   const ilha = alturaSaia > 300;
   const pisoY = ilha ? -alturaSaia / MM + 0.01 : -0.02;
 
+  const escuro = tema === "escuro";
+  const fundo = escuro
+    ? apresentacao ? "#121924" : "#131a24"
+    : apresentacao ? "#eef0f2" : "#f4f5f6";
+
   return (
     <Canvas
       shadows
@@ -233,8 +240,12 @@ export function Scene3D({ projeto, params, materialId, apresentacao = false }: P
       camera={{ position: [2.6, 2.1, 3], fov: 40 }}
       style={{ width: "100%", height: "100%", display: "block" }}
     >
-      <color attach="background" args={[apresentacao ? "#eef0f2" : "#f4f5f6"]} />
-      <hemisphereLight intensity={0.75} groundColor="#c9cdd2" color="#ffffff" />
+      <color attach="background" args={[fundo]} />
+      <hemisphereLight
+        intensity={escuro ? 0.55 : 0.75}
+        groundColor={escuro ? "#3a4658" : "#c9cdd2"}
+        color="#ffffff"
+      />
       <directionalLight
         position={[4, 7, 4]}
         intensity={1.5}

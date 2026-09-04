@@ -237,14 +237,20 @@ export function geometriaRecorte(
   const { origem, eixo, normal } = frameTrecho(bancada, i);
 
   const ehFuro = recorte.tipo === "furo_torneira" || recorte.tipo === "furo_dosador";
+  // DIMENSÕES do recorte: nunca arredondar, senão a cuba/furo pode não encaixar.
   const largura = ehFuro ? (recorte.diametro ?? 35) : recorte.largura;
   const prof = ehFuro ? (recorte.diametro ?? 35) : recorte.profundidade;
 
-  const along = recorte.posicao.centralizada
-    ? (trecho.comprimento - largura) / 2
-    : recorte.posicao.distanciaInicio;
-  const recuo =
-    recorte.posicao.recuoFrontal ?? (trecho.profundidade - prof) / 2;
+  // POSIÇÃO: arredonda para mm inteiro (a serra não corta em 0,5 mm). O "fim" do
+  // recorte é derivado de início + largura, então a largura declarada é preservada.
+  const along = Math.round(
+    recorte.posicao.centralizada
+      ? (trecho.comprimento - largura) / 2
+      : recorte.posicao.distanciaInicio,
+  );
+  const recuo = Math.round(
+    recorte.posicao.recuoFrontal ?? (trecho.profundidade - prof) / 2,
+  );
 
   const base: Ponto = {
     x: origem.x + eixo.x * along + normal.x * recuo,
@@ -255,11 +261,13 @@ export function geometriaRecorte(
     y: base.y + eixo.y * a + normal.y * n,
   });
   const cantos = [p(0, 0), p(largura, 0), p(largura, prof), p(0, prof)];
-  const centro = p(largura / 2, prof / 2);
+  const meio = p(largura / 2, prof / 2);
+  const centro: Ponto = { x: Math.round(meio.x), y: Math.round(meio.y) };
 
   return {
     cantos,
     centro,
+    // raio é DIMENSÃO (metade do diâmetro) — não arredondar.
     raio: ehFuro ? largura / 2 : undefined,
     recorte,
   };

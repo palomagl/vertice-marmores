@@ -5,16 +5,17 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AMBIENTE_LABEL, FORMATO_LABEL } from "@/domain/presets";
-import { calcularOrcamento } from "@/domain/quote";
-import { brl } from "@/domain/units";
+import { calcularOrcamento, rotuloTotal } from "@/domain/quote";
 import { useProjectStore } from "@/store/projectStore";
 
 export function Projetos() {
   const lista = useProjectStore((s) => s.lista);
   const tabela = useProjectStore((s) => s.tabela);
-  const novoProjeto = useProjectStore((s) => s.novoProjeto);
+  const iniciarNovoProjeto = useProjectStore((s) => s.iniciarNovoProjeto);
   const abrirProjeto = useProjectStore((s) => s.abrirProjeto);
   const excluirProjeto = useProjectStore((s) => s.excluirProjeto);
+  const tema = useProjectStore((s) => s.tema);
+  const alternarTema = useProjectStore((s) => s.alternarTema);
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
 
@@ -32,10 +33,6 @@ export function Projetos() {
     await abrirProjeto(id);
     navigate("/editor");
   };
-  const criar = async () => {
-    await novoProjeto("pia");
-    navigate("/editor");
-  };
 
   return (
     <div className="tela">
@@ -44,9 +41,18 @@ export function Projetos() {
           <h1>Projetos</h1>
           <p className="tela__sub">DF Mármores e Granitos</p>
         </div>
-        <button className="btn-primario" onClick={criar}>
-          Novo projeto
-        </button>
+        <div className="tela__acoes">
+          <button
+            className="btn-ico"
+            onClick={alternarTema}
+            title={tema === "escuro" ? "Usar tema claro" : "Usar tema escuro"}
+          >
+            {tema === "escuro" ? "☀" : "☾"}
+          </button>
+          <button className="btn-primario" onClick={iniciarNovoProjeto}>
+            Novo projeto
+          </button>
+        </div>
       </header>
 
       <input
@@ -58,7 +64,7 @@ export function Projetos() {
 
       <ul className="lista-projetos">
         {filtrada.map((p) => {
-          const total = p.material ? calcularOrcamento(p, tabela).total : null;
+          const orc = calcularOrcamento(p, tabela);
           return (
             <li key={p.id} className="linha-projeto">
               <button className="linha-projeto__abrir" onClick={() => abrir(p.id)}>
@@ -75,7 +81,7 @@ export function Projetos() {
                   </span>
                 </div>
                 <div className="linha-projeto__total">
-                  {total != null ? brl(total) : "—"}
+                  {orc.completo ? rotuloTotal(orc) : "—"}
                 </div>
               </button>
               <button

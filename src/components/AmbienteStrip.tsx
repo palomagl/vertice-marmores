@@ -25,7 +25,7 @@ const GRAD: Record<Ambiente, string> = {
   lavanderia: "linear-gradient(135deg, #dfe1de, #bcc0bb)",
 };
 
-export function AmbienteStrip() {
+export function AmbienteStrip({ onPick }: { onPick?: () => void } = {}) {
   const atual = useProjectStore((s) => s.projeto.ambiente);
   const aplicarAmbiente = useProjectStore((s) => s.aplicarAmbiente);
 
@@ -37,7 +37,10 @@ export function AmbienteStrip() {
           className={`ambiente-card ${a === atual ? "is-active" : ""}`}
           style={{ backgroundImage: `url(/ambientes/${a}.jpg), ${GRAD[a]}` }}
           title={PRESETS[a].descricao}
-          onClick={() => aplicarAmbiente(a)}
+          onClick={() => {
+            aplicarAmbiente(a);
+            onPick?.();
+          }}
         >
           <span className="ambiente-card__label">{AMBIENTE_LABEL[a]}</span>
         </button>

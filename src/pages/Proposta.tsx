@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 import { Drawing2D } from "@/components/Drawing2D";
 import { MATERIAIS } from "@/domain/catalogo";
 import { AMBIENTE_LABEL, FORMATO_LABEL } from "@/domain/presets";
-import { calcularOrcamento } from "@/domain/quote";
+import { calcularOrcamento, rotuloTotal } from "@/domain/quote";
 import { brl, mmParaCmLabel } from "@/domain/units";
 import { useProjectStore } from "@/store/projectStore";
 
@@ -21,8 +21,23 @@ export function Proposta() {
   const empresa = tabela.empresa;
 
   useEffect(() => {
-    garantirNumeroProposta();
-  }, [garantirNumeroProposta]);
+    // proposta sem material não é proposta — não consome número sequencial
+    if (orc.completo) garantirNumeroProposta();
+  }, [orc.completo, garantirNumeroProposta]);
+
+  if (!orc.completo) {
+    return (
+      <div className="proposta-wrap">
+        <div className="proposta-bar app-ui">
+          <Link to="/editor" className="btn-ghost">← Voltar ao projeto</Link>
+        </div>
+        <article className="documento">
+          <h1>Proposta indisponível</h1>
+          <p>Selecione a pedra no projeto para gerar a proposta comercial.</p>
+        </article>
+      </div>
+    );
+  }
 
   const hoje = new Date();
   const validade = new Date(hoje.getTime() + empresa.validadeDias * 864e5);
@@ -116,12 +131,14 @@ export function Proposta() {
               {orc.itens.map((i) => (
                 <tr key={i.chave}>
                   <td>{i.descricao} <em>{i.detalhe}</em></td>
-                  <td className="num">{brl(i.valor)}</td>
+                  <td className="num">
+                    {i.valor == null ? "a combinar" : brl(i.valor)}
+                  </td>
                 </tr>
               ))}
               <tr className="doc__total">
                 <td>TOTAL</td>
-                <td className="num">{brl(orc.total)}</td>
+                <td className="num">{rotuloTotal(orc)}</td>
               </tr>
             </tbody>
           </table>

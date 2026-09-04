@@ -45,6 +45,23 @@ export const AMBIENTE_LABEL: Record<Ambiente, string> = {
   lavanderia: "Lavanderia",
 };
 
+/**
+ * Nome derivado do projeto — nunca vazio (seção 5 do pedido).
+ *   "Julia — Pia · 03/09"        quando há cliente
+ *   "Simulação — Pia · 03/09"    sem cliente
+ */
+export function nomeProjetoPadrao(
+  clienteNome: string,
+  ambiente: Ambiente,
+  dataISO: string,
+): string {
+  const d = new Date(dataISO);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const quem = clienteNome.trim() || "Simulação";
+  return `${quem} — ${AMBIENTE_LABEL[ambiente]} · ${dd}/${mm}`;
+}
+
 interface RecorteSeed {
   tipo: TipoRecorte;
   largura: number;

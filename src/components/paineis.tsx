@@ -454,7 +454,9 @@ function RecorteEditor({
           <span className="campo__label">Diâmetro (mm)</span>
           <input
             type="number"
+            inputMode="decimal"
             value={r.diametro}
+            onFocus={(e) => e.target.select()}
             onChange={(e) =>
               updateRecorte(r.id, {
                 diametro: Number(e.target.value),

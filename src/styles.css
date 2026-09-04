@@ -1,18 +1,44 @@
 :root {
   --bg: #f4f5f6;
   --palco: #f7f8f9;
+  --palco-1: #ffffff;
+  --palco-2: #f7f8f9;
   --surface: #ffffff;
+  --surface-2: #fbfcfc;
+  --hover: #f2f4f5;
+  --vidro: rgba(255, 255, 255, 0.9);
   --borda: #e2e5e8;
   --borda-forte: #cfd4d9;
   --texto: #1f2933;
   --texto-dim: #6b7580;
-  --acento: #2f7d4f;
-  --acento-claro: #e8f2ec;
+  --acento: #1d3a6b;
+  --acento-claro: #e8eef7;
   --acento-2: #2563eb;
   --alerta: #c0392b;
   --sombra: 0 8px 24px rgba(15, 23, 42, 0.1);
   --raio: 14px;
   color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f141c;
+  --palco: #131a24;
+  --palco-1: #1b2432;
+  --palco-2: #121924;
+  --surface: #1a2130;
+  --surface-2: #202839;
+  --hover: #262f42;
+  --vidro: rgba(20, 26, 38, 0.82);
+  --borda: #2b3446;
+  --borda-forte: #3b4658;
+  --texto: #e7ebf1;
+  --texto-dim: #98a2b1;
+  --acento: #4a7fd0;
+  --acento-claro: #1f2c41;
+  --acento-2: #6ea0e6;
+  --alerta: #e06b5c;
+  --sombra: 0 8px 24px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -91,17 +117,9 @@ input[type="range"]::-moz-range-thumb {
   font-size: 15px;
   font-weight: 700;
   text-decoration: none;
-  box-shadow: 0 8px 20px rgba(47, 125, 79, 0.28);
+  box-shadow: 0 8px 20px rgba(29, 58, 107, 0.28);
 }
 .btn-primario:disabled { opacity: 0.5; box-shadow: none; }
-.btn-toggle {
-  background: var(--surface);
-  border: 1px solid var(--borda-forte);
-  border-radius: 999px;
-  padding: 12px 20px;
-  font-size: 14px;
-  font-weight: 600;
-}
 .btn-ghost {
   background: var(--surface);
   border: 1px solid var(--borda-forte);
@@ -266,7 +284,7 @@ input[type="range"]::-moz-range-thumb {
   position: relative;
   flex: 1;
   min-height: 0;
-  background: radial-gradient(circle at 50% 38%, #ffffff, var(--palco) 72%);
+  background: radial-gradient(circle at 50% 38%, var(--palco-1), var(--palco-2) 72%);
 }
 .simu__svg { padding: 3vmin; }
 @media (min-width: 960px) {
@@ -276,22 +294,27 @@ input[type="range"]::-moz-range-thumb {
   position: absolute; inset: 0; display: grid; place-items: center;
   color: var(--texto-dim); font-size: 13px;
 }
-.simu__badge {
+/* chip da pedra atual sobre o 3D — clicável, abre o painel de pedras */
+.simu__pedra {
   position: absolute;
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1.3;
-  background: rgba(255, 255, 255, 0.75);
-  padding: 4px 14px;
+  z-index: 4;
+  max-width: min(70vw, 320px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--vidro);
+  border: 1px solid var(--borda);
+  color: var(--texto);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 16px;
   border-radius: 999px;
+  box-shadow: var(--sombra);
+  backdrop-filter: blur(6px);
 }
-.simu__badge span { font-size: 9.5px; letter-spacing: 0.12em; color: var(--texto-dim); font-weight: 700; }
-.simu__badge strong { font-size: 13px; }
 .simu__hint {
   position: absolute;
   right: 16px;
@@ -299,7 +322,7 @@ input[type="range"]::-moz-range-thumb {
   z-index: 3;
   font-size: 11px;
   color: var(--texto-dim);
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--vidro);
   padding: 4px 10px;
   border-radius: 999px;
 }
@@ -352,7 +375,7 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fbfcfc;
+  background: var(--surface-2);
   border: none;
   padding: 9px 11px;
   font-size: 13px;
@@ -402,7 +425,7 @@ input[type="range"]::-moz-range-thumb {
   right: 372px;
   bottom: 12px;
   z-index: 3;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--vidro);
   border: 1px solid var(--borda);
   border-radius: 12px;
   padding: 8px 14px 10px;
@@ -425,7 +448,7 @@ input[type="range"]::-moz-range-thumb {
   position: relative;
   flex: 1;
   height: 26px;
-  background: #eef0f1;
+  background: var(--hover);
   border-radius: 999px;
 }
 .regua__pill {
@@ -509,7 +532,7 @@ input[type="range"]::-moz-range-thumb {
   padding: 7px 8px;
   text-align: left;
 }
-.pedra-row:hover { background: #f6f7f8; }
+.pedra-row:hover { background: var(--hover); }
 .pedra-row.is-active { border-color: var(--acento); background: var(--acento-claro); }
 .pedra-row__swatch {
   width: 48px;
@@ -531,7 +554,7 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid var(--borda);
   border-radius: 10px;
   padding: 8px 10px;
-  background: #fbfcfc;
+  background: var(--surface-2);
 }
 .aba-lado + .aba-lado { margin-top: 6px; }
 .slider--sm .slider__topo { font-size: 11.5px; }
@@ -557,9 +580,23 @@ input[type="range"]::-moz-range-thumb {
   text-align: left; background: transparent; border: none; color: var(--texto);
   padding: 9px 10px; border-radius: 8px; text-decoration: none; font-size: 13.5px;
 }
-.menu button:hover:not(:disabled), .menu a:hover { background: #f2f4f5; }
+.menu button:hover:not(:disabled), .menu a:hover { background: var(--hover); }
 .menu button:disabled { color: var(--texto-dim); cursor: default; }
 .menu hr { border: none; border-top: 1px solid var(--borda); margin: 4px 0; }
+
+/* controle 3D | 2D no cabeçalho */
+.simu__modo .segmented { padding: 2px; }
+.simu__modo .segmented button { padding: 6px 12px; font-size: 12px; }
+
+/* desfazer / refazer */
+.simu__undo { font-size: 15px; padding: 6px 10px; }
+.simu__undo:disabled { opacity: 0.35; cursor: default; }
+
+/* wrapper do rodapé: no desktop os filhos fluem normalmente; no celular vira barra fixa */
+.simu__bottom { display: contents; }
+
+/* barra inferior de abas — só no celular (ver media query) */
+.simu__tabs { display: none; }
 
 /* CTA */
 .simu__cta {
@@ -581,6 +618,7 @@ input[type="range"]::-moz-range-thumb {
 }
 .simu__preco span { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texto-dim); font-weight: 700; }
 .simu__preco strong { font-size: 20px; color: var(--acento); }
+.simu__preco strong.simu__preco-vazio { font-size: 12px; font-weight: 600; color: var(--texto-dim); }
 .simu__preco-pop {
   position: absolute;
   bottom: calc(100% + 10px);
@@ -595,7 +633,51 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* apresentação */
-.simu--apresentacao .simu__palco { background: linear-gradient(180deg, #f1f2f4, #e4e6e9); }
+.simu--apresentacao .simu__palco { background: linear-gradient(180deg, var(--palco-1), var(--palco-2)); }
+
+/* o desenho técnico 2D é sempre em "papel" claro, mesmo no tema escuro */
+:root[data-theme="dark"] .simu__svg {
+  background: #eef0f2;
+  border-radius: 12px;
+}
+
+/* ===================== Modal "Novo projeto" ===================== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.4);
+}
+.modal {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--borda);
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+.modal h2 { margin: 0 0 4px; font-size: 17px; }
+.modal__campo { display: flex; flex-direction: column; gap: 5px; }
+.modal__campo span { font-size: 12.5px; font-weight: 600; color: var(--texto-dim); }
+.modal__campo span em { font-style: normal; font-weight: 400; }
+.modal__campo input { width: 100%; padding: 10px 12px; }
+.modal .btn-primario { margin-top: 4px; }
+.modal__sim {
+  background: none;
+  border: none;
+  color: var(--texto-dim);
+  font-size: 12.5px;
+  text-decoration: underline;
+  padding: 2px;
+}
 
 /* ===================== Orçamento ===================== */
 .orcamento { }
@@ -605,6 +687,13 @@ input[type="range"]::-moz-range-thumb {
 }
 .orcamento__head span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texto-dim); }
 .orcamento__head strong { font-size: 18px; color: var(--acento); }
+.orcamento__head strong.orcamento__sem-pedra { font-size: 12px; font-weight: 600; color: var(--texto-dim); }
+.orcamento__frete {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 14px; border-bottom: 1px solid var(--borda);
+  font-size: 12.5px; color: var(--texto-dim);
+}
+.orcamento__frete input { width: 96px; text-align: right; }
 .orcamento__itens { list-style: none; margin: 0; padding: 8px 14px; display: flex; flex-direction: column; gap: 8px; max-height: 44vh; overflow-y: auto; }
 .orcamento__itens li { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
 .orcamento__desc { display: flex; flex-direction: column; }
@@ -624,6 +713,7 @@ input[type="range"]::-moz-range-thumb {
 .tela__topo h1 { font-size: 20px; margin: 10px 0 0; }
 .tela__sub { margin: 2px 0 0; font-size: 12.5px; color: var(--texto-dim); }
 .tela__topo .btn-ghost { display: inline-block; margin-bottom: 2px; }
+.tela__acoes { display: flex; align-items: center; gap: 8px; }
 .tela__nota { font-size: 12px; color: var(--texto-dim); }
 .tela__busca { width: 100%; padding: 11px 14px; margin-bottom: 16px; }
 
@@ -649,7 +739,7 @@ input[type="range"]::-moz-range-thumb {
   background: transparent; border: none; border-left: 1px solid var(--borda);
   color: var(--texto-dim); padding: 0 14px; font-size: 13px;
 }
-.linha-projeto__excluir:hover { color: var(--alerta); background: #fdf0ee; }
+.linha-projeto__excluir:hover { color: var(--alerta); background: var(--hover); }
 
 .preco-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
 .preco-card { background: var(--surface); border: 1px solid var(--borda); border-radius: 12px; padding: 14px 16px; }
@@ -710,38 +800,11 @@ input[type="range"]::-moz-range-thumb {
 
 /* ===================== responsivo ===================== */
 
-/* aviso: no celular em pé, pede para girar (o configurador é feito para paisagem) */
-.rotacione { display: none; }
-@media (max-width: 860px) and (orientation: portrait) {
-  .simu { display: none !important; }
-  .rotacione {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 18px;
-    padding: 40px;
-    text-align: center;
-    background: var(--bg);
-    color: var(--texto);
-  }
-  .rotacione__ico {
-    font-size: 60px;
-    animation: gira 2.4s ease-in-out infinite;
-  }
-  .rotacione strong { font-size: 17px; }
-  .rotacione span { font-size: 13px; color: var(--texto-dim); max-width: 300px; }
-}
-@keyframes gira {
-  0%, 55%, 100% { transform: rotate(0deg); }
-  25%, 40% { transform: rotate(90deg); }
-}
+/* a gaveta e as abas só existem no layout de celular (ativadas na media query) */
+.sheet-backdrop { display: none; }
 
-/* tela estreita em paisagem (celular deitado, tablet pequeno): layout flutuante compacto */
-@media (max-width: 1024px) {
+/* tela estreita em paisagem (tablet pequeno): painéis laterais compactos */
+@media (min-width: 901px) and (max-width: 1024px) {
   .simu__header { padding: 4px 10px 2px; }
   .simu__nome { font-size: 12.5px; padding: 6px 12px; }
   .ambientes-strip { padding: 4px 10px 6px; gap: 8px; }
@@ -761,13 +824,162 @@ input[type="range"]::-moz-range-thumb {
   .simu__cta { padding: 6px 10px; gap: 6px; }
   .simu__preco strong { font-size: 16px; }
   .btn-primario { padding: 9px 16px; font-size: 13px; }
-  .btn-toggle { padding: 9px 14px; font-size: 12.5px; }
 }
 
-@media (max-width: 680px) {
-  .ambiente-card { flex: 0 0 108px; height: 58px; }
-  .simu__left, .simu__right { width: 200px; }
-  .simu:not(.simu--apresentacao) .simu__svg { padding: 6px 212px 58px 212px; }
-  .regua { left: 212px; right: 212px; }
-  .medidas-bar__toggle { display: none; }
+/* ===================== celular / tablet retrato: 3D full-bleed + barra inferior ===================== */
+@media (max-width: 900px), (orientation: portrait) and (max-width: 1024px) {
+  /* some com os painéis laterais e as barras do topo */
+  .simu__left,
+  .simu__right,
+  .regua,
+  .simu__hint,
+  .simu__undo,
+  .simu__sync,
+  .simu > .ambientes-strip,
+  .simu > .medidas-bar { display: none; }
+
+  /* 3D sangra atrás de tudo */
+  .simu__palco { position: absolute; inset: 0; z-index: 0; }
+  .simu:not(.simu--apresentacao) .simu__svg { padding: 12px; }
+
+  /* cabeçalho flutua translúcido */
+  .simu__header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 6;
+    gap: 6px;
+    padding: 6px 8px;
+    padding-top: max(6px, env(safe-area-inset-top));
+    background: var(--vidro);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--borda);
+  }
+  .simu__nome { font-size: 12px; padding: 7px 10px; min-width: 0; }
+  .simu__voltar { width: 30px; height: 30px; font-size: 20px; }
+  .simu__header .btn-ico { padding: 5px 9px; font-size: 15px; }
+  .simu__modo .segmented button { padding: 5px 9px; font-size: 11px; }
+
+  .simu__pedra { top: calc(env(safe-area-inset-top) + 50px); }
+
+  /* rodapé fixo: CTA + abas */
+  .simu__bottom {
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 6;
+  }
+  .simu__cta {
+    padding: 6px 12px;
+    gap: 8px;
+    background: var(--vidro);
+    backdrop-filter: blur(8px);
+  }
+  .simu__preco span { font-size: 9px; }
+  .simu__preco strong { font-size: 16px; }
+  .simu__preco strong.simu__preco-vazio { font-size: 11px; }
+  .simu__preco-pop { width: min(340px, calc(100vw - 20px)); }
+  .btn-primario { padding: 9px 16px; font-size: 13px; }
+
+  .simu__tabs {
+    display: flex;
+    background: var(--surface);
+    border-top: 1px solid var(--borda);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .simu__tabs button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    padding: 8px 2px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--texto-dim);
+  }
+  .simu__tabs button.is-active { color: var(--acento); }
+  .simu__tabs-ico { font-size: 18px; line-height: 1; }
+
+  /* ---- bottom sheet (arrastável, ~55% da tela) ---- */
+  .sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(0, 0, 0, 0.4);
+  }
+  .sheet {
+    width: 100%;
+    height: 55vh;
+    height: 55dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.32);
+    animation: sheet-sobe 0.18s ease-out;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  @keyframes sheet-sobe {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .sheet__handle { flex: 0 0 auto; touch-action: none; cursor: grab; }
+  .sheet__handle:active { cursor: grabbing; }
+  .sheet__grab {
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--borda-forte);
+    margin: 8px auto 2px;
+  }
+  .sheet__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 14px 10px;
+    border-bottom: 1px solid var(--borda);
+  }
+  .sheet__head strong { font-size: 14px; }
+  .sheet__head button {
+    background: none;
+    border: none;
+    font-size: 15px;
+    color: var(--texto-dim);
+    padding: 4px 6px;
+  }
+  .sheet__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* painéis reaproveitados dentro da gaveta */
+  .sheet__body .pedras { height: auto; }
+  .sheet__body .pedras__filtros { position: static; }
+  .sheet__body .pedras__lista { overflow: visible; }
+  .sheet__body .painel-l { flex: 1; }
+  .sheet__body .ambientes-strip { flex-wrap: wrap; overflow: visible; padding: 12px; gap: 10px; }
+  .sheet__body .ambiente-card { flex: 1 1 44%; height: 96px; }
+  .sheet__body .medidas-bar { border: none; padding: 12px; }
+  .sheet__body .medidas-bar__toggle { display: flex; }
+  .sheet__regua .regua {
+    position: static;
+    left: auto;
+    right: auto;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 4px 12px 12px;
+  }
 }

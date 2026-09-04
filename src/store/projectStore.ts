@@ -9,15 +9,18 @@ import type {
   Projeto,
   Recorte,
 } from "@/domain/project";
+import { MATERIAIS } from "@/domain/catalogo";
 import {
   PRESETS,
   montarAmbiente,
+  nomeProjetoPadrao,
   novoId,
   projetoNovo,
   trechosPadrao,
 } from "@/domain/presets";
 import { TABELA_PADRAO, type TabelaPrecos } from "@/domain/tabelaPrecos";
 import { proximoNumeroProposta } from "@/domain/numero";
+import { aplicarTema, lerTema, type Tema } from "@/lib/tema";
 import {
   carregarProjeto,
   carregarTabela,
@@ -31,26 +34,47 @@ import {
 export type Aba = "pedras" | "componentes" | "medidas" | "ambientes";
 export type ModoVisualizacao = "2d" | "3d";
 
+/** profundidade da pilha de desfazer/refazer */
+const HIST_MAX = 20;
+
+/** pedra pré-selecionada em todo projeto novo — a tela nunca aparece "cinza" */
+const PEDRA_PADRAO: Material =
+  MATERIAIS.find((m) => m.id === "granito_branco_siena") ?? MATERIAIS[0];
+
 interface ProjectState {
   projeto: Projeto;
   tabela: TabelaPrecos;
   lista: Projeto[];
   carregado: boolean;
 
+  /** pilha de estados anteriores / refeitos (JSON do projeto) */
+  historico: Projeto[];
+  futuro: Projeto[];
+
   // UI
   aba: Aba;
   modo: ModoVisualizacao;
   apresentacao: boolean;
+  tema: Tema;
+  /** modal "Novo projeto" (passo do nome do cliente) aberto */
+  criandoProjeto: boolean;
 
   setAba: (aba: Aba) => void;
   setModo: (modo: ModoVisualizacao) => void;
   toggleModo: () => void;
   setApresentacao: (v: boolean) => void;
+  alternarTema: () => void;
+
+  // desfazer / refazer
+  desfazer: () => void;
+  refazer: () => void;
 
   // ciclo de vida
   hidratar: () => Promise<void>;
   recarregarLista: () => Promise<void>;
-  novoProjeto: (ambiente?: Ambiente) => Promise<void>;
+  iniciarNovoProjeto: () => void;
+  cancelarNovoProjeto: () => void;
+  criarProjeto: (cliente: { nome: string; telefone: string }) => Promise<void>;
   abrirProjeto: (id: string) => Promise<void>;
   excluirProjeto: (id: string) => Promise<void>;
 
@@ -74,6 +98,8 @@ interface ProjectState {
   setAbaReforco: (tipo: "frontao" | "saia", lado: Lado, reforco: boolean) => void;
   /** atribui o número sequencial da proposta, se ainda não tiver */
   garantirNumeroProposta: () => void;
+  /** distância de entrega em km (undefined = não informado; 0 = retirada na loja) */
+  setDistanciaKm: (km: number | undefined) => void;
 
   // admin
   setTabela: (patch: Partial<TabelaPrecos>) => void;
@@ -91,10 +117,15 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
   /** evita hidratação concorrente (React StrictMode chama o efeito duas vezes) */
   let hidratando = false;
 
-  /** aplica um patch no projeto e grava no disco */
+  /** aplica um patch no projeto, empilha o estado anterior e grava no disco */
   const alterar = (mut: (p: Projeto) => void) => {
-    const projeto = commit(get().projeto, mut);
-    set({ projeto });
+    const anterior = get().projeto;
+    const projeto = commit(anterior, mut);
+    set((s) => ({
+      projeto,
+      historico: [...s.historico, anterior].slice(-HIST_MAX),
+      futuro: [],
+    }));
     void salvarProjeto(projeto);
   };
 
@@ -103,15 +134,49 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
     tabela: TABELA_PADRAO,
     lista: [],
     carregado: false,
+    historico: [],
+    futuro: [],
 
     aba: "ambientes",
     modo: "3d",
     apresentacao: false,
+    tema: lerTema(),
+    criandoProjeto: false,
 
     setAba: (aba) => set({ aba }),
     setModo: (modo) => set({ modo }),
     toggleModo: () => set((s) => ({ modo: s.modo === "2d" ? "3d" : "2d" })),
     setApresentacao: (apresentacao) => set({ apresentacao }),
+    alternarTema: () =>
+      set((s) => {
+        const tema: Tema = s.tema === "escuro" ? "claro" : "escuro";
+        aplicarTema(tema);
+        return { tema };
+      }),
+
+    desfazer: () => {
+      const { historico, futuro, projeto } = get();
+      if (!historico.length) return;
+      const anterior = historico[historico.length - 1];
+      set({
+        projeto: anterior,
+        historico: historico.slice(0, -1),
+        futuro: [projeto, ...futuro].slice(0, HIST_MAX),
+      });
+      void salvarProjeto(anterior);
+    },
+
+    refazer: () => {
+      const { historico, futuro, projeto } = get();
+      if (!futuro.length) return;
+      const proximo = futuro[0];
+      set({
+        projeto: proximo,
+        historico: [...historico, projeto].slice(-HIST_MAX),
+        futuro: futuro.slice(1),
+      });
+      void salvarProjeto(proximo);
+    },
 
     hidratar: async () => {
       if (hidratando || get().carregado) return;
@@ -121,6 +186,8 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
       let projeto = id ? await carregarProjeto(id) : undefined;
       if (!projeto) {
         projeto = projetoNovo("pia");
+        projeto.material = PEDRA_PADRAO;
+        projeto.nome = nomeProjetoPadrao("", projeto.ambiente, projeto.criadoEm);
         await salvarProjeto(projeto);
         idProjetoAtual.set(projeto.id);
       }
@@ -131,17 +198,30 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
         ...tabelaSalva,
         empresa: { ...TABELA_PADRAO.empresa, ...(tabelaSalva?.empresa ?? {}) },
       };
-      set({ projeto, tabela, lista, carregado: true });
+      set({ projeto, tabela, lista, carregado: true, historico: [], futuro: [] });
       hidratando = false;
     },
 
     recarregarLista: async () => set({ lista: await listarProjetos() }),
 
-    novoProjeto: async (ambiente = "pia") => {
-      const projeto = projetoNovo(ambiente);
-      await salvarProjeto(projeto);
-      idProjetoAtual.set(projeto.id);
-      set({ projeto, aba: "medidas", apresentacao: false });
+    iniciarNovoProjeto: () => set({ criandoProjeto: true }),
+    cancelarNovoProjeto: () => set({ criandoProjeto: false }),
+
+    criarProjeto: async (cliente) => {
+      const p = projetoNovo("pia");
+      p.cliente = { nome: cliente.nome.trim(), telefone: cliente.telefone.trim() };
+      p.nome = nomeProjetoPadrao(p.cliente.nome, p.ambiente, p.criadoEm);
+      p.material = PEDRA_PADRAO;
+      await salvarProjeto(p);
+      idProjetoAtual.set(p.id);
+      set({
+        projeto: p,
+        aba: "medidas",
+        apresentacao: false,
+        criandoProjeto: false,
+        historico: [],
+        futuro: [],
+      });
       await get().recarregarLista();
     },
 
@@ -149,13 +229,20 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
       const projeto = await carregarProjeto(id);
       if (!projeto) return;
       idProjetoAtual.set(id);
-      set({ projeto, aba: "medidas", apresentacao: false });
+      set({
+        projeto,
+        aba: "medidas",
+        apresentacao: false,
+        historico: [],
+        futuro: [],
+      });
     },
 
     excluirProjeto: async (id) => {
       await dbExcluir(id);
       if (get().projeto.id === id) {
         idProjetoAtual.clear();
+        set({ carregado: false });
         await get().hidratar();
       } else {
         await get().recarregarLista();
@@ -242,6 +329,12 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
       const numero = proximoNumeroProposta();
       alterar((p) => void (p.numero = numero));
     },
+
+    setDistanciaKm: (km) =>
+      alterar((p) => {
+        if (km == null || Number.isNaN(km)) delete p.distanciaKm;
+        else p.distanciaKm = Math.max(0, Math.round(km));
+      }),
 
     setTabela: (patch) =>
       set((s) => {

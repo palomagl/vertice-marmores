@@ -3,6 +3,14 @@
  *
  * Bancada NÃO é área × R$/m². A chapa vem em tamanho fixo e o retalho se perde.
  * v1: retângulo envolvente (conservador e defensável). Nesting fica pra fase 2.
+ *
+ * Regras de apresentação:
+ *  - Sem pedra selecionada: `completo === false` e `total === null`. As linhas de
+ *    mão de obra continuam em `itensParciais` (o vendedor pode querer vê-las),
+ *    mas NÃO existe "total da peça".
+ *  - Distância de entrega não informada (`projeto.distanciaKm` ausente):
+ *    `fretePendente === true`, linha de frete com `valor: null` ("a combinar"),
+ *    fora do total. `distanciaKm === 0` é retirada na loja: frete R$ 0, no total.
  */
 import {
   areaPoligono,
@@ -14,36 +22,51 @@ import {
 import { PRESETS } from "./presets";
 import type { Projeto } from "./project";
 import type { TabelaPrecos } from "./tabelaPrecos";
-import { mm2ParaM2 } from "./units";
+import { brl, mm2ParaM2 } from "./units";
 
 export interface ItemOrcamento {
   chave: string;
   descricao: string;
   detalhe: string;
-  valor: number;
+  /** null = "a combinar" — a linha aparece mas não entra no total */
+  valor: number | null;
 }
 
-export interface Orcamento {
-  itens: ItemOrcamento[];
-  /** soma dos itens antes de desconto */
-  subtotal: number;
-  total: number;
-  // --- números que NÃO vão para a proposta do cliente (modo apresentação esconde) ---
-  interno: {
-    areaEnvolventeM2: number;
-    areaRealM2: number;
-    aproveitamentoPct: number;
-    custoMaterial: number | null;
-    margemPct: number | null;
-  };
+interface OrcamentoInterno {
+  areaEnvolventeM2: number;
+  areaRealM2: number;
+  aproveitamentoPct: number;
+  custoMaterial: number | null;
+  margemPct: number | null;
 }
+
+interface OrcamentoBase {
+  itens: ItemOrcamento[];
+  /** linhas válidas mesmo sem material (borda, recortes, complementos, instalação, frete) */
+  itensParciais: ItemOrcamento[];
+  /** distância de entrega não informada → frete "a combinar", fora do total */
+  fretePendente: boolean;
+  interno: OrcamentoInterno;
+}
+
+/**
+ * União discriminada por `completo`: sem material não existe total, e o TS
+ * garante que ninguém leia `total` como número sem antes checar `completo`.
+ */
+export type Orcamento =
+  | (OrcamentoBase & { completo: true; subtotal: number; total: number })
+  | (OrcamentoBase & { completo: false; subtotal: null; total: null });
 
 const arred = (v: number): number => Math.round(v * 100) / 100;
+
+/** Total já com o sufixo "+ frete" quando a distância não foi informada. */
+export function rotuloTotal(orc: Orcamento & { completo: true }): string {
+  return orc.fretePendente ? `${brl(orc.total)} + frete` : brl(orc.total);
+}
 
 export function calcularOrcamento(
   projeto: Projeto,
   tabela: TabelaPrecos,
-  opts?: { distanciaKm?: number },
 ): Orcamento {
   const { pontos, segmentos } = contornoBancada(projeto.bancada);
   const caixa = bbox(pontos);
@@ -51,12 +74,13 @@ export function calcularOrcamento(
 
   const areaEnvolventeMm2 = caixa.largura * caixa.altura;
   const areaRealMm2 = areaPoligono(pontos);
-  const areaEnvolventeM2 = mm2ParaM2(areaEnvolventeMm2) * tabela.fatorAproveitamento;
+  const areaEnvolventeM2 =
+    mm2ParaM2(areaEnvolventeMm2) * tabela.fatorAproveitamento;
   const areaRealM2 = mm2ParaM2(areaRealMm2);
 
   const itens: ItemOrcamento[] = [];
 
-  // 1. m² de chapa consumida × preço/m²
+  // 1. m² de chapa consumida × preço/m² — ÚNICO item que depende do material
   if (projeto.material) {
     const valor = arred(areaEnvolventeM2 * projeto.material.precoM2);
     itens.push({
@@ -97,12 +121,23 @@ export function calcularOrcamento(
   }
 
   // 5. complementos (frontão, saia, rodabanca...) — R$/m linear × comprimento da borda
+  //
+  // REGRA v1 (pendente de confirmação da marmoraria): o preço é PURAMENTE
+  // linear e NÃO usa `c.altura`. Ok para saia de ~8 cm; subestima o painel de
+  // ilha que desce até o piso (chapa cortada cobrada como metro de saia).
+  // Não mudar a fórmula sem decisão de negócio. Ver quote.test.ts.
   for (const c of projeto.complementos) {
     const precoM = tabela.complemento[c.tipo] ?? 0;
     if (precoM <= 0) continue;
-    let compMm = segmentosDoComplemento(segmentos, c).reduce((acc, s) => acc + s.comprimento, 0);
+    let compMm = segmentosDoComplemento(segmentos, c).reduce(
+      (acc, s) => acc + s.comprimento,
+      0,
+    );
     if (compMm <= 0 && c.trechos.length) {
-      compMm = c.trechos.reduce((acc, ti) => acc + (projeto.bancada.trechos[ti]?.comprimento ?? 0), 0);
+      compMm = c.trechos.reduce(
+        (acc, ti) => acc + (projeto.bancada.trechos[ti]?.comprimento ?? 0),
+        0,
+      );
     }
     const compM = compMm / 1000;
     if (compM <= 0) continue;
@@ -126,23 +161,41 @@ export function calcularOrcamento(
     });
   }
 
-  // 7. frete por faixa
-  const distanciaKm = opts?.distanciaKm;
-  if (distanciaKm != null) {
-    const faixa =
-      tabela.frete.find((f) => distanciaKm <= f.ateKm) ??
-      tabela.frete[tabela.frete.length - 1];
-    if (faixa) {
-      itens.push({
-        chave: "frete",
-        descricao: "Frete",
-        detalhe: `até ${faixa.ateKm} km`,
-        valor: arred(faixa.valor),
-      });
-    }
+  // 7. frete — 0 (retirada) entra no total; ausente fica "a combinar", fora dele
+  const distanciaKm = projeto.distanciaKm;
+  const fretePendente = distanciaKm == null; // undefined/null → pendente; 0 → NÃO
+  if (fretePendente) {
+    itens.push({
+      chave: "frete",
+      descricao: "Frete",
+      detalhe: "a combinar",
+      valor: null,
+    });
+  } else if (distanciaKm === 0) {
+    itens.push({
+      chave: "frete",
+      descricao: "Frete",
+      detalhe: "retirada na loja",
+      valor: 0,
+    });
+  } else {
+    const ultima = tabela.frete[tabela.frete.length - 1];
+    const faixa = tabela.frete.find((f) => distanciaKm <= f.ateKm) ?? ultima;
+    itens.push({
+      chave: "frete",
+      descricao: "Frete",
+      detalhe: faixa
+        ? distanciaKm <= faixa.ateKm
+          ? `até ${faixa.ateKm} km`
+          : `acima de ${faixa.ateKm} km`
+        : `${distanciaKm} km`,
+      valor: faixa ? arred(faixa.valor) : 0,
+    });
   }
 
-  const subtotal = arred(itens.reduce((acc, i) => acc + i.valor, 0));
+  const subtotal = arred(
+    itens.reduce((acc, i) => acc + (i.valor ?? 0), 0),
+  );
 
   const custoMaterial = projeto.material?.custoM2
     ? arred(areaEnvolventeM2 * projeto.material.custoM2)
@@ -152,18 +205,38 @@ export function calcularOrcamento(
       ? arred(((subtotal - custoMaterial) / subtotal) * 100)
       : null;
 
+  const interno: OrcamentoInterno = {
+    areaEnvolventeM2: arred(areaEnvolventeM2),
+    areaRealM2: arred(areaRealM2),
+    aproveitamentoPct:
+      areaEnvolventeM2 > 0 ? arred((areaRealM2 / areaEnvolventeM2) * 100) : 0,
+    custoMaterial,
+    margemPct,
+  };
+
+  const itensParciais = itens.filter((i) => i.chave !== "chapa");
+  const completo = projeto.material != null;
+
+  if (!completo) {
+    return {
+      completo: false,
+      itens,
+      itensParciais,
+      fretePendente,
+      subtotal: null,
+      total: null,
+      interno,
+    };
+  }
+
   return {
+    completo: true,
     itens,
+    itensParciais,
+    fretePendente,
     subtotal,
     total: subtotal,
-    interno: {
-      areaEnvolventeM2: arred(areaEnvolventeM2),
-      areaRealM2: arred(areaRealM2),
-      aproveitamentoPct:
-        areaEnvolventeM2 > 0 ? arred((areaRealM2 / areaEnvolventeM2) * 100) : 0,
-      custoMaterial,
-      margemPct,
-    },
+    interno,
   };
 }
 

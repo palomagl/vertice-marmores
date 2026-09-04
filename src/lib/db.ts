@@ -5,6 +5,7 @@
  */
 import Dexie, { type Table } from "dexie";
 import type { Projeto } from "@/domain/project";
+import { nomeProjetoPadrao } from "@/domain/presets";
 import type { TabelaPrecos } from "@/domain/tabelaPrecos";
 
 export interface ConfigRow {
@@ -18,10 +19,32 @@ class MarmorariaDB extends Dexie {
 
   constructor() {
     super("df-marmoraria");
+    // v1 — esquema original
     this.version(1).stores({
       projetos: "id, atualizadoEm, ambiente",
       config: "chave",
     });
+    // v2 — projeto sempre com nome legível na lista. Backfill dos antigos que
+    // nasceram "sem identificação". Nenhuma mudança de índice.
+    this.version(2)
+      .stores({
+        projetos: "id, atualizadoEm, ambiente",
+        config: "chave",
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table<Projeto>("projetos")
+          .toCollection()
+          .modify((p) => {
+            if (!p.nome || !p.nome.trim()) {
+              p.nome = nomeProjetoPadrao(
+                p.cliente?.nome ?? "",
+                p.ambiente,
+                p.criadoEm ?? p.atualizadoEm ?? new Date().toISOString(),
+              );
+            }
+          });
+      });
   }
 }
 

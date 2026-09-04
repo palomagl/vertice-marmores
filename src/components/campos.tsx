@@ -1,7 +1,7 @@
 /**
  * Campos de entrada. A conversão cm <-> mm mora só aqui (especificação, seção 3).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { cmParaMm, mmParaCm, mmParaMetrosLabel } from "@/domain/units";
 
 interface CampoCmProps {
@@ -31,6 +31,23 @@ export function CampoCm({ label, valueMm, onChangeMm, min = 0, max = 600 }: Camp
     onChangeMm(cmParaMm(clamped));
   };
 
+  const onEnter = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    commit();
+    // pula para o próximo campo de texto do mesmo painel
+    const escopo =
+      e.currentTarget.closest(".painel-l, .medidas-bar, .comp-item, .sheet__body") ??
+      document;
+    const campos = Array.from(
+      escopo.querySelectorAll<HTMLInputElement>(
+        'input:not([type="range"]):not([type="checkbox"]):not([disabled])',
+      ),
+    );
+    const i = campos.indexOf(e.currentTarget);
+    (campos[i + 1] ?? e.currentTarget).focus();
+  };
+
   return (
     <label className="campo">
       <span className="campo__label">
@@ -43,8 +60,9 @@ export function CampoCm({ label, valueMm, onChangeMm, min = 0, max = 600 }: Camp
           inputMode="decimal"
           value={txt}
           onChange={(e) => setTxt(e.target.value)}
+          onFocus={(e) => e.target.select()}
           onBlur={commit}
-          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+          onKeyDown={onEnter}
         />
         <span className="campo__unidade">cm</span>
       </span>

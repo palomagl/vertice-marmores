@@ -98,7 +98,12 @@ export type Lado = "frontal" | "traseiro" | "esquerdo" | "direito";
 export interface Complemento {
   id: string;
   tipo: TipoComplemento;
-  /** altura da aba, mm */
+  /**
+   * altura da aba, mm.
+   * REGRA v1: o preço do complemento (quote.ts) é linear (R$/m) e NÃO usa esta
+   * altura. Ok para saia de ~8 cm; subestima o painel de ilha que desce até o
+   * piso. Pendente de confirmação da marmoraria — ver quote.test.ts.
+   */
   altura: number;
   /** lado da peça (frontão/saia). Quando ausente, cai no comportamento por trecho. */
   lado?: Lado;
@@ -142,6 +147,12 @@ export interface Projeto {
   recortes: Recorte[];
   complementos: Complemento[];
   acabamentoBorda: AcabamentoBorda;
+  /**
+   * distância até o local de entrega, km inteiro.
+   * undefined = não informado → frete "a combinar", fora do total.
+   * 0 = retirada na loja → frete R$ 0, dentro do total.
+   */
+  distanciaKm?: number;
   observacoes?: string;
   sync: EstadoSync;
 }
