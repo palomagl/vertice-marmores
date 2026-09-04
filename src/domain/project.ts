@@ -155,4 +155,6 @@ export interface Projeto {
   distanciaKm?: number;
   observacoes?: string;
   sync: EstadoSync;
+  /** ISO da última vez que este projeto entrou num backup .json. undefined = nunca exportado. */
+  exportadoEm?: string;
 }

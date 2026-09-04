@@ -2,10 +2,16 @@
  * Tela inicial (especificação, seção 2): lista de projetos, busca por nome do
  * cliente, botão de novo projeto. Tudo vem do banco local.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { InstalarBanner } from "@/components/InstalarBanner";
 import { AMBIENTE_LABEL, FORMATO_LABEL } from "@/domain/presets";
 import { calcularOrcamento, rotuloTotal } from "@/domain/quote";
+import {
+  exportarProjetos,
+  exportarTodos,
+  importarBackup,
+} from "@/lib/backup";
 import { useProjectStore } from "@/store/projectStore";
 
 export function Projetos() {
@@ -14,10 +20,13 @@ export function Projetos() {
   const iniciarNovoProjeto = useProjectStore((s) => s.iniciarNovoProjeto);
   const abrirProjeto = useProjectStore((s) => s.abrirProjeto);
   const excluirProjeto = useProjectStore((s) => s.excluirProjeto);
+  const recarregarLista = useProjectStore((s) => s.recarregarLista);
   const tema = useProjectStore((s) => s.tema);
   const alternarTema = useProjectStore((s) => s.alternarTema);
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
+  const [aviso, setAviso] = useState<string | null>(null);
+  const inputArquivo = useRef<HTMLInputElement>(null);
 
   const filtrada = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -29,13 +38,38 @@ export function Projetos() {
     );
   }, [lista, busca]);
 
+  const naoExportados = lista.filter((p) => !p.exportadoEm).length;
+
   const abrir = async (id: string) => {
     await abrirProjeto(id);
     navigate("/editor");
   };
 
+  const exportarTudo = async () => {
+    const n = await exportarTodos();
+    await recarregarLista();
+    setAviso(n ? `${n} projeto(s) exportado(s).` : "Nada para exportar.");
+  };
+
+  const importar = async (arquivo: File) => {
+    try {
+      const res = await importarBackup(await arquivo.text());
+      await recarregarLista();
+      const partes = [
+        res.novos && `${res.novos} novo(s)`,
+        res.atualizados && `${res.atualizados} atualizado(s)`,
+        res.ignorados.length && `${res.ignorados.length} ignorado(s)`,
+      ].filter(Boolean);
+      setAviso(`Importação: ${partes.join(", ") || "nada a importar"}.`);
+    } catch (e) {
+      setAviso(e instanceof Error ? e.message : "Falha ao importar.");
+    }
+  };
+
   return (
     <div className="tela">
+      <InstalarBanner />
+
       <header className="tela__topo">
         <div>
           <h1>Projetos</h1>
@@ -54,6 +88,31 @@ export function Projetos() {
           </button>
         </div>
       </header>
+
+      <div className="tela__backup">
+        <input
+          ref={inputArquivo}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void importar(f);
+            e.target.value = "";
+          }}
+        />
+        <button className="btn-ghost" onClick={() => inputArquivo.current?.click()}>
+          Importar backup
+        </button>
+        <button className="btn-ghost" onClick={() => void exportarTudo()}>
+          Exportar tudo{naoExportados > 0 ? ` (${naoExportados} sem cópia)` : ""}
+        </button>
+        {aviso && (
+          <span className="tela__backup-aviso" onClick={() => setAviso(null)}>
+            {aviso}
+          </span>
+        )}
+      </div>
 
       <input
         className="tela__busca"
@@ -82,13 +141,29 @@ export function Projetos() {
                 </div>
                 <div className="linha-projeto__total">
                   {orc.completo ? rotuloTotal(orc) : "—"}
+                  {!p.exportadoEm && (
+                    <em className="tag-sem-copia" title="Nunca exportado nem sincronizado">
+                      sem cópia
+                    </em>
+                  )}
                 </div>
               </button>
               <button
+                className="linha-projeto__acao"
+                title="Exportar este projeto (.json)"
+                onClick={() => void exportarProjetos([p]).then(recarregarLista)}
+              >
+                ⬇
+              </button>
+              <button
                 className="linha-projeto__excluir"
-                title="Excluir"
+                title="Excluir definitivamente"
                 onClick={() => {
-                  if (confirm(`Excluir "${p.nome || "Projeto sem identificação"}"?`)) {
+                  if (
+                    confirm(
+                      `Excluir "${p.nome || "Projeto sem identificação"}"?\n\nA exclusão é definitiva e apaga também os dados do cliente deste projeto.`,
+                    )
+                  ) {
                     void excluirProjeto(p.id);
                   }
                 }}

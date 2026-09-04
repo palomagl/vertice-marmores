@@ -96,13 +96,15 @@ export function Configurador() {
   useEffect(() => setDragY(0), [sheet]);
 
   const enviarProposta = () => {
+    // wa.me: o telefone no caminho é o DESTINATÁRIO (como o "To:" de um e-mail).
+    // O texto NÃO leva nome/telefone/endereço do cliente — a mensagem vai para
+    // ele mesmo e o resumo é só do produto (LGPD: minimização em URL).
     const tel = projeto.cliente.telefone.replace(/\D/g, "");
     const destino = tel ? (tel.length <= 11 ? `55${tel}` : tel) : "";
     const t = projeto.bancada.trechos;
     const medidas = t.map((x) => `${Math.round(x.comprimento / 10)} cm`).join(" + ");
     const texto = [
       `Proposta ${projeto.numero ?? ""} — ${tabela.empresa.nome}`.trim(),
-      projeto.cliente.nome && `Cliente: ${projeto.cliente.nome}`,
       `Ambiente: ${AMBIENTE_LABEL[projeto.ambiente]} (${FORMATO_LABEL[projeto.bancada.formato]})`,
       `Medidas: ${medidas} · prof. ${Math.round(t[0].profundidade / 10)} cm`,
       `Pedra: ${nomeMaterial}`,

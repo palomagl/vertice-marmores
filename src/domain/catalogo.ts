@@ -2,6 +2,13 @@
  * Catálogo de pedras. Em produção vem do Supabase (estoque real da DF, com foto
  * de cada chapa que está no galpão). As texturas abaixo são procedurais
  * (ver stoneTexture.ts) — placeholder até as fotos chegarem.
+ *
+ * ⚠️ SEGURANÇA: `custoM2` abaixo COMPILA NO BUNDLE JavaScript e é legível por
+ * qualquer pessoa com acesso ao deploy. Os valores aqui são de exemplo — NÃO
+ * coloque o custo real da empresa. O custo verdadeiro fica em
+ * `catalogo_pedras.custo_m2` no Supabase, legível SÓ por 'admin' via RLS
+ * (ver supabase/schema.sql e SECURITY.md). O mesmo vale para
+ * `margemMinimaPct` / `descontoMaximoPct` em tabelaPrecos.ts.
  */
 import type { CantoAreaMolhada, Material, TipoRecorte } from "./project";
 import { pedraDataURI, type ParamsPedra } from "./stoneTexture";
