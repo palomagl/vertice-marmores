@@ -16,7 +16,7 @@ import { brl } from "@/domain/units";
 import { useProjectStore } from "@/store/projectStore";
 import { CampoCm, SliderCm, SliderMm } from "./campos";
 
-const ACABAMENTOS: { value: TipoAcabamentoBorda; label: string }[] = [
+export const ACABAMENTOS: { value: TipoAcabamentoBorda; label: string }[] = [
   { value: "reto", label: "Reto" },
   { value: "boleado", label: "Boleado" },
   { value: "meia_cana", label: "Meia-cana" },
@@ -158,82 +158,87 @@ export function PainelComponentes() {
         />
       </section>
 
-      {/* ---- Acabamento ---- */}
-      <section className="painel-l__grupo">
-        <span className="painel-l__titulo">Acabamento de borda</span>
-        <div className="chips">
-          {ACABAMENTOS.map((o) => (
-            <button
-              key={o.value}
-              className={`chip ${acabamento.tipo === o.value ? "is-active" : ""}`}
-              onClick={() =>
-                setAcabamento({ tipo: o.value, precoMetroLinear: tabela.acabamentoBorda[o.value] })
-              }
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      </section>
+      {/* ---- Opções avançadas: acabamento, frontão, saia ---- */}
+      <details className="avancado">
+        <summary>
+          <span>Opções avançadas</span>
+          <em>Acabamento, frontão, saia</em>
+        </summary>
 
-      {/* ---- Frontão ---- */}
-      <section className="painel-l__grupo">
-        <span className="painel-l__titulo">Frontão</span>
-        {LADOS_FRONTAO.map(({ lado, label }) => {
-          const c = aba("frontao", lado);
-          return (
-            <div key={lado} className="aba-lado">
-              <SliderMm
-                label={label}
-                valueMm={c?.altura ?? 0}
-                onChangeMm={(mm) => setAbaLado("frontao", lado, mm)}
-                minMm={0}
-                maxMm={300}
-              />
-              {c && (
-                <label className="check check--sm">
-                  <input
-                    type="checkbox"
-                    checked={!!c.reforco}
-                    onChange={(e) => setAbaReforco("frontao", lado, e.target.checked)}
-                  />
-                  Reforço
-                </label>
-              )}
-            </div>
-          );
-        })}
-      </section>
+        <section className="painel-l__grupo">
+          <span className="painel-l__titulo">Acabamento de borda</span>
+          <div className="chips">
+            {ACABAMENTOS.map((o) => (
+              <button
+                key={o.value}
+                className={`chip ${acabamento.tipo === o.value ? "is-active" : ""}`}
+                onClick={() =>
+                  setAcabamento({ tipo: o.value, precoMetroLinear: tabela.acabamentoBorda[o.value] })
+                }
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </section>
 
-      {/* ---- Saia / painel lateral ---- */}
-      <section className="painel-l__grupo">
-        <span className="painel-l__titulo">Saia / painel lateral</span>
-        {LADOS_SAIA.map(({ lado, label }) => {
-          const c = aba("saia", lado);
-          return (
-            <div key={lado} className="aba-lado">
-              <SliderMm
-                label={label}
-                valueMm={c?.altura ?? 0}
-                onChangeMm={(mm) => setAbaLado("saia", lado, mm)}
-                minMm={0}
-                maxMm={1000}
-                stepMm={10}
-              />
-              {c && (
-                <label className="check check--sm">
-                  <input
-                    type="checkbox"
-                    checked={!!c.reforco}
-                    onChange={(e) => setAbaReforco("saia", lado, e.target.checked)}
-                  />
-                  Reforço da saia
-                </label>
-              )}
-            </div>
-          );
-        })}
-      </section>
+        <section className="painel-l__grupo">
+          <span className="painel-l__titulo">Frontão</span>
+          {LADOS_FRONTAO.map(({ lado, label }) => {
+            const c = aba("frontao", lado);
+            return (
+              <div key={lado} className="aba-lado">
+                <SliderMm
+                  label={label}
+                  valueMm={c?.altura ?? 0}
+                  onChangeMm={(mm) => setAbaLado("frontao", lado, mm)}
+                  minMm={0}
+                  maxMm={300}
+                />
+                {c && (
+                  <label className="check check--sm">
+                    <input
+                      type="checkbox"
+                      checked={!!c.reforco}
+                      onChange={(e) => setAbaReforco("frontao", lado, e.target.checked)}
+                    />
+                    Reforço
+                  </label>
+                )}
+              </div>
+            );
+          })}
+        </section>
+
+        <section className="painel-l__grupo">
+          <span className="painel-l__titulo">Saia / painel lateral</span>
+          {LADOS_SAIA.map(({ lado, label }) => {
+            const c = aba("saia", lado);
+            return (
+              <div key={lado} className="aba-lado">
+                <SliderMm
+                  label={label}
+                  valueMm={c?.altura ?? 0}
+                  onChangeMm={(mm) => setAbaLado("saia", lado, mm)}
+                  minMm={0}
+                  maxMm={1000}
+                  stepMm={10}
+                />
+                {c && (
+                  <label className="check check--sm">
+                    <input
+                      type="checkbox"
+                      checked={!!c.reforco}
+                      onChange={(e) => setAbaReforco("saia", lado, e.target.checked)}
+                    />
+                    Reforço da saia
+                  </label>
+                )}
+              </div>
+            );
+          })}
+        </section>
+      </details>
 
       {/* ---- Recortes ---- */}
       <section className="painel-l__grupo">
@@ -528,7 +533,7 @@ function RecorteEditor({
   );
 }
 
-function rotulo(t: string): string {
+export function rotulo(t: string): string {
   const m: Record<string, string> = {
     area_molhada: "Área molhada",
     cuba_embutir: "Cuba de embutir",

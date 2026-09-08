@@ -19,24 +19,29 @@ import { Drawing2D } from "./Drawing2D";
 import { PainelComponentes, PainelPedras } from "./paineis";
 import { PainelOrcamento } from "./PainelOrcamento";
 import { PositionRuler } from "./PositionRuler";
+import { Revisao } from "./Revisao";
 
 const Scene3D = lazy(() =>
   import("./Scene3D").then((m) => ({ default: m.Scene3D })),
 );
 
-/** abas da barra inferior (celular) */
+/**
+ * Abas da barra inferior (celular/tablet) — na ORDEM do fluxo guiado
+ * (Ambiente → Medidas → Recortes → Pedra → Revisão). O número exibido em
+ * cada botão vem da posição no array, não é um campo à parte.
+ */
 const ABAS: { id: Aba; label: string; ico: string }[] = [
-  { id: "ambientes", label: "Ambientes", ico: "⌂" },
-  { id: "pedras", label: "Pedras", ico: "◈" },
-  { id: "componentes", label: "Componentes", ico: "▤" },
+  { id: "ambientes", label: "Ambiente", ico: "⌂" },
   { id: "medidas", label: "Medidas", ico: "↔" },
+  { id: "componentes", label: "Recortes", ico: "▤" },
+  { id: "pedras", label: "Pedra", ico: "◈" },
 ];
 
 const TITULO_SHEET: Record<Aba, string> = {
-  ambientes: "Ambientes",
+  ambientes: "Escolha o ambiente",
+  medidas: "Informe as medidas",
+  componentes: "Recortes e opções avançadas",
   pedras: "Escolha a pedra",
-  componentes: "Componentes",
-  medidas: "Medidas",
 };
 
 const MODOS: { value: ModoVisualizacao; label: string }[] = [
@@ -62,8 +67,10 @@ export function Configurador() {
 
   const [menu, setMenu] = useState(false);
   const [preco, setPreco] = useState(false);
-  /** aba aberta como bottom sheet no celular (null = fechada) */
+  /** aba aberta como bottom sheet no celular/tablet (null = fechada) */
   const [sheet, setSheet] = useState<Aba | null>(null);
+  /** modal de revisão ("CONFIGURAÇÃO CONCLUÍDA → REVISAR → GERAR ORÇAMENTO") */
+  const [revisao, setRevisao] = useState(false);
   const [dragY, setDragY] = useState(0);
   const dragRef = useRef<number | null>(null);
 
@@ -174,26 +181,34 @@ export function Configurador() {
           <div className="simu__menu-wrap">
             <button className="btn-ico" onClick={() => setMenu((v) => !v)}>⋮</button>
             {menu && (
-              <div className="menu" onMouseLeave={() => setMenu(false)}>
-                <button onClick={() => { setApresentacao(true); setMenu(false); }}>
-                  Modo apresentação
-                </button>
-                <Link to="/proposta" onClick={() => setMenu(false)}>Proposta comercial</Link>
-                <Link to="/ordem-servico" onClick={() => setMenu(false)}>Ordem de serviço</Link>
+              <>
+                {/* fundo clicável — fecha no toque, sem depender de hover/mouseleave */}
                 <button
-                  onClick={() => { enviarProposta(); setMenu(false); }}
-                  disabled={!projeto.numero}
-                  title={projeto.numero ? "" : "Gere o orçamento primeiro"}
-                >
-                  Enviar proposta ao cliente
-                </button>
-                <hr />
-                <Link to="/" onClick={() => setMenu(false)}>Meus projetos</Link>
-                <button onClick={() => { iniciarNovoProjeto(); setMenu(false); }}>
-                  Novo projeto
-                </button>
-                <Link to="/precos" onClick={() => setMenu(false)}>Configurações</Link>
-              </div>
+                  className="click-backdrop"
+                  aria-label="Fechar menu"
+                  onClick={() => setMenu(false)}
+                />
+                <div className="menu" onMouseLeave={() => setMenu(false)}>
+                  <button onClick={() => { setApresentacao(true); setMenu(false); }}>
+                    Modo apresentação
+                  </button>
+                  <Link to="/proposta" onClick={() => setMenu(false)}>Proposta comercial</Link>
+                  <Link to="/ordem-servico" onClick={() => setMenu(false)}>Ordem de serviço</Link>
+                  <button
+                    onClick={() => { enviarProposta(); setMenu(false); }}
+                    disabled={!projeto.numero}
+                    title={projeto.numero ? "" : "Gere o orçamento primeiro"}
+                  >
+                    Enviar proposta ao cliente
+                  </button>
+                  <hr />
+                  <Link to="/" onClick={() => setMenu(false)}>Meus projetos</Link>
+                  <button onClick={() => { iniciarNovoProjeto(); setMenu(false); }}>
+                    Novo projeto
+                  </button>
+                  <Link to="/precos" onClick={() => setMenu(false)}>Configurações</Link>
+                </div>
+              </>
             )}
           </div>
         </header>
@@ -263,37 +278,42 @@ export function Configurador() {
                   )}
                 </button>
                 {preco && (
-                  <div className="simu__preco-pop" onMouseLeave={() => setPreco(false)}>
-                    <PainelOrcamento />
-                  </div>
+                  <>
+                    <button
+                      className="click-backdrop"
+                      aria-label="Fechar"
+                      onClick={() => setPreco(false)}
+                    />
+                    <div className="simu__preco-pop" onMouseLeave={() => setPreco(false)}>
+                      <PainelOrcamento />
+                    </div>
+                  </>
                 )}
               </div>
-              {orc.completo ? (
-                <Link className="btn-primario" to="/proposta">
-                  Gerar orçamento
-                </Link>
-              ) : (
-                <button
-                  className="btn-primario"
-                  disabled
-                  title="Selecione a pedra para gerar o orçamento"
-                >
-                  Gerar orçamento
-                </button>
-              )}
+              {/*
+                Sempre clicável: em vez de travar sem explicação quando falta a
+                pedra, abre a Revisão — que mostra exatamente o que falta e
+                oferece o caminho pra resolver ali mesmo.
+              */}
+              <button className="btn-primario" onClick={() => setRevisao(true)}>
+                Revisar e gerar orçamento
+              </button>
             </>
           )}
         </footer>
 
         {!apresentacao && (
           <nav className="simu__tabs">
-            {ABAS.map((a) => (
+            {ABAS.map((a, i) => (
               <button
                 key={a.id}
                 className={sheet === a.id ? "is-active" : ""}
                 onClick={() => setSheet((s) => (s === a.id ? null : a.id))}
               >
-                <span className="simu__tabs-ico">{a.ico}</span>
+                <span className="simu__tabs-top">
+                  <span className="simu__tabs-ico">{a.ico}</span>
+                  <span className="simu__tabs-num">{i + 1}</span>
+                </span>
                 {a.label}
               </button>
             ))}
@@ -319,7 +339,16 @@ export function Configurador() {
               <div className="sheet__grab" />
               <div className="sheet__head">
                 <strong>{TITULO_SHEET[sheet]}</strong>
-                <button onClick={() => setSheet(null)} aria-label="Fechar">✕</button>
+                <button
+                  onClick={() => setSheet(null)}
+                  // o header inteiro é área de arrastar (onPointerDown captura o
+                  // ponteiro no .sheet__handle) — sem isso, o toque no ✕ vira
+                  // início de arraste em vez de clique, e o botão não fecha nada.
+                  onPointerDown={(e) => e.stopPropagation()}
+                  aria-label="Fechar"
+                >
+                  ✕
+                </button>
               </div>
             </div>
             <div className="sheet__body">
@@ -339,6 +368,16 @@ export function Configurador() {
             </div>
           </div>
         </div>
+      )}
+
+      {revisao && !apresentacao && (
+        <Revisao
+          onFechar={() => setRevisao(false)}
+          onEditar={(aba) => {
+            setRevisao(false);
+            setSheet(aba);
+          }}
+        />
       )}
     </div>
   );

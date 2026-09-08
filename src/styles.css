@@ -67,39 +67,45 @@ input[type="number"] { -moz-appearance: textfield; }
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
+/*
+ * Alvo de toque confortável (~44px) num slider fica feio se o trilho todo
+ * engrossar — em vez disso a faixa CLICÁVEL do input cresce (height) mas o
+ * trilho visual (::-webkit-slider-runnable-track) continua fino, com o thumb
+ * maior centralizado nela.
+ */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 26px;
+  height: 40px;
   padding: 0;
   background: transparent;
   border: none;
 }
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 4px;
+  height: 5px;
   border-radius: 999px;
   background: var(--borda-forte);
 }
 input[type="range"]::-moz-range-track {
-  height: 4px;
+  height: 5px;
   border-radius: 999px;
   background: var(--borda-forte);
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  margin-top: -8px;
-  width: 20px;
-  height: 20px;
+  margin-top: -12px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--acento);
   border: 3px solid #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: var(--acento);
   border: 3px solid #fff;
@@ -114,6 +120,7 @@ input[type="range"]::-moz-range-thumb {
   border: none;
   border-radius: 999px;
   padding: 12px 26px;
+  min-height: 44px;
   font-size: 15px;
   font-weight: 700;
   text-decoration: none;
@@ -125,6 +132,7 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid var(--borda-forte);
   border-radius: 10px;
   padding: 8px 14px;
+  min-height: 40px;
   text-decoration: none;
   color: var(--texto);
   font-size: 13px;
@@ -134,8 +142,22 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid var(--borda-forte);
   border-radius: 10px;
   padding: 7px 13px;
+  min-width: 40px;
+  min-height: 40px;
   font-size: 18px;
   line-height: 1;
+}
+
+/* fundo clicável invisível — fecha menu/popover no toque (sem depender de hover) */
+.click-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: default;
 }
 
 .boot { display: grid; place-items: center; height: 100%; color: var(--texto-dim); }
@@ -238,7 +260,8 @@ input[type="range"]::-moz-range-thumb {
   background: var(--surface);
   border: 1px solid var(--borda-forte);
   border-radius: 999px;
-  padding: 7px 16px;
+  padding: 10px 18px;
+  min-height: 40px;
   font-size: 13px;
   font-weight: 600;
   color: var(--texto-dim);
@@ -352,13 +375,14 @@ input[type="range"]::-moz-range-thumb {
   color: var(--texto-dim);
   font-weight: 700;
 }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chips--sm .chip { padding: 4px 9px; font-size: 11.5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips--sm .chip { padding: 6px 11px; font-size: 11.5px; min-height: 32px; }
 .chip {
   background: var(--surface);
   border: 1px solid var(--borda-forte);
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 9px 15px;
+  min-height: 40px;
   font-size: 12.5px;
   font-weight: 500;
 }
@@ -377,7 +401,8 @@ input[type="range"]::-moz-range-thumb {
   align-items: center;
   background: var(--surface-2);
   border: none;
-  padding: 9px 11px;
+  padding: 13px 14px;
+  min-height: 44px;
   font-size: 13px;
   font-weight: 600;
   text-align: left;
@@ -406,7 +431,8 @@ input[type="range"]::-moz-range-thumb {
   background: var(--surface);
   border: 1px solid var(--borda-forte);
   border-radius: 9px;
-  padding: 7px 2px;
+  padding: 9px 2px;
+  min-height: 44px;
   font-size: 10.5px;
   color: var(--texto-dim);
 }
@@ -447,15 +473,15 @@ input[type="range"]::-moz-range-thumb {
 .regua__track {
   position: relative;
   flex: 1;
-  height: 26px;
+  height: 36px;
   background: var(--hover);
   border-radius: 999px;
 }
 .regua__pill {
   position: absolute;
   top: 3px;
-  height: 20px;
-  min-width: 20px;
+  height: 30px;
+  min-width: 30px;
   background: var(--acento-claro);
   border: 1px solid var(--acento);
   border-radius: 999px;
@@ -467,8 +493,8 @@ input[type="range"]::-moz-range-thumb {
 }
 .regua__pill:active { cursor: grabbing; }
 .regua__handle {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--acento);
   border: 2px solid #fff;
@@ -561,6 +587,37 @@ input[type="range"]::-moz-range-thumb {
 .check--sm { font-size: 12px; margin-top: 6px; }
 .painel-l section { border-top: 1px solid var(--borda); padding-top: 12px; }
 .painel-l section:first-child { border-top: none; padding-top: 0; }
+
+/* "Opções avançadas" — acabamento/frontão/saia ficam fechados por padrão pra
+   reduzir a carga cognitiva do painel; nada foi removido, só escondido. */
+.avancado {
+  border-top: 1px solid var(--borda);
+  padding-top: 4px;
+}
+.avancado > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 2px;
+  min-height: 44px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--texto);
+}
+.avancado > summary::-webkit-details-marker { display: none; }
+.avancado > summary::after {
+  content: "▸";
+  color: var(--texto-dim);
+  font-size: 12px;
+  transition: transform 0.15s ease;
+}
+.avancado[open] > summary::after { transform: rotate(90deg); }
+.avancado > summary span:first-child { color: var(--acento); }
+.avancado > summary em { font-style: normal; font-size: 11px; color: var(--texto-dim); }
+.avancado > section { margin-top: 8px; }
 
 .menu {
   position: absolute;
@@ -679,6 +736,46 @@ input[type="range"]::-moz-range-thumb {
   padding: 2px;
 }
 
+/* ===================== Revisão ===================== */
+.modal--revisao { max-width: 460px; max-height: 88vh; }
+.revisao__sub { margin: -6px 0 0; font-size: 12.5px; color: var(--texto-dim); }
+.revisao__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+}
+.revisao__linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: none;
+  border-bottom: 1px solid var(--borda);
+  padding: 13px 14px;
+  min-height: 48px;
+  text-align: left;
+}
+.revisao__linha:last-child { border-bottom: none; }
+.revisao__linha:hover { background: var(--hover); }
+.revisao__linha span { font-size: 11.5px; color: var(--texto-dim); flex: 0 0 auto; }
+.revisao__linha strong { font-size: 13px; text-align: right; font-weight: 600; }
+.revisao__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 4px 2px;
+}
+.revisao__total span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texto-dim); }
+.revisao__total strong { font-size: 22px; color: var(--acento); }
+.revisao__total strong.revisao__falta { font-size: 13px; color: var(--alerta); }
+.revisao__acoes { display: flex; gap: 10px; }
+.revisao__acoes .btn-ghost { flex: 1; text-align: center; }
+.revisao__acoes .btn-primario { flex: 1.4; }
+
 /* ===================== Orçamento ===================== */
 .orcamento { }
 .orcamento__head {
@@ -729,8 +826,30 @@ input[type="range"]::-moz-range-thumb {
   color: var(--texto-dim); font-size: 13px; padding: 2px 4px; flex: 0 0 auto;
 }
 
+/* ação principal da tela — grande e sozinha, sem concorrência visual */
+.tela__novo {
+  display: flex;
+  width: 100%;
+  padding: 16px;
+  font-size: 16px;
+  margin-bottom: 18px;
+}
+.tela__tema { flex: 0 0 auto; }
+
+/* ações secundárias (backup) — discretas, texto simples, não competem com "Novo projeto" */
+.link-discreto {
+  background: none;
+  border: none;
+  color: var(--texto-dim);
+  font-size: 12px;
+  text-decoration: underline;
+  padding: 6px 2px;
+  min-height: 32px;
+}
+.link-discreto:hover { color: var(--acento); }
+
 /* barra de backup */
-.tela__backup { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.tela__backup { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 14px; }
 .tela__backup-aviso { font-size: 12px; color: var(--texto-dim); cursor: pointer; }
 .tag-sem-copia {
   display: block; font-style: normal; font-size: 10px; font-weight: 600;
@@ -835,8 +954,14 @@ input[type="range"]::-moz-range-thumb {
 /* a gaveta e as abas só existem no layout de celular (ativadas na media query) */
 .sheet-backdrop { display: none; }
 
-/* tela estreita em paisagem (tablet pequeno): painéis laterais compactos */
-@media (min-width: 901px) and (max-width: 1024px) {
+/*
+ * Janela estreita em paisagem COM MOUSE (ex.: notebook redimensionado).
+ * Importante: `pointer: fine` aqui é proposital — um tablet real em
+ * paisagem (iPad, Android) tem ponteiro grosso (dedo) e cai no layout de
+ * toque abaixo, não neste, mesmo tendo largura parecida. Este bloco nunca
+ * deveria ter sido o destino do tablet — era o vetor de um bug de UX.
+ */
+@media (min-width: 901px) and (max-width: 1024px) and (pointer: fine) {
   .simu__header { padding: 4px 10px 2px; }
   .simu__nome { font-size: 12.5px; padding: 6px 12px; }
   .ambientes-strip { padding: 4px 10px 6px; gap: 8px; }
@@ -858,8 +983,18 @@ input[type="range"]::-moz-range-thumb {
   .btn-primario { padding: 9px 16px; font-size: 13px; }
 }
 
-/* ===================== celular / tablet retrato: 3D full-bleed + barra inferior ===================== */
-@media (max-width: 900px), (orientation: portrait) and (max-width: 1024px) {
+/*
+ * ===================== celular / TABLET: 3D full-bleed + barra inferior =====================
+ * Três condições disparam este layout (a prioridade é essa por natureza —
+ * qualquer uma que bater já é suficiente):
+ *   1. tela estreita (celular) — max-width: 900px
+ *   2. retrato até 1024px (tablet em pé)
+ *   3. ponteiro grosso (dedo) até 1366px — cobre tablet em PAISAGEM
+ *      (iPad Air/Pro, Android grandes), que antes caía sem querer no layout
+ *      de painéis flutuantes pensado pra mouse.
+ */
+@media (max-width: 900px), (orientation: portrait) and (max-width: 1024px),
+  (pointer: coarse) and (max-width: 1366px) {
   /* some com os painéis laterais e as barras do topo */
   .simu__left,
   .simu__right,
@@ -923,6 +1058,7 @@ input[type="range"]::-moz-range-thumb {
     padding-bottom: env(safe-area-inset-bottom);
   }
   .simu__tabs button {
+    position: relative;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -930,13 +1066,30 @@ input[type="range"]::-moz-range-thumb {
     gap: 2px;
     background: none;
     border: none;
-    padding: 8px 2px 10px;
+    padding: 10px 2px 12px;
+    min-height: 48px;
     font-size: 10px;
     font-weight: 600;
     color: var(--texto-dim);
   }
   .simu__tabs button.is-active { color: var(--acento); }
+  .simu__tabs-top { position: relative; display: inline-flex; }
   .simu__tabs-ico { font-size: 18px; line-height: 1; }
+  /* numeral do passo (1–4), preso ao ícone — reforça "isso é uma sequência" */
+  .simu__tabs-num {
+    position: absolute;
+    top: -5px;
+    right: -9px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--borda-forte);
+    color: var(--surface);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 15px;
+  }
+  .simu__tabs button.is-active .simu__tabs-num { background: var(--acento); }
 
   /* ---- bottom sheet (arrastável, ~55% da tela) ---- */
   .sheet-backdrop {
@@ -1014,4 +1167,29 @@ input[type="range"]::-moz-range-thumb {
     box-shadow: none;
     padding: 4px 12px 12px;
   }
+}
+
+/*
+ * Dentro do layout de toque acima, o TABLET tem mais espaço que o celular —
+ * aproveita pra dar mais respiro nos alvos principais (a gaveta some menos
+ * da tela, cabeçalho e abas ficam mais folgados). Só entra em telas de
+ * ponteiro grosso reconhecidamente maiores que um celular.
+ */
+@media (min-width: 601px) and (pointer: coarse) {
+  .simu__header { padding: 10px 20px; gap: 12px; }
+  .simu__nome { font-size: 14px; padding: 10px 18px; }
+  .simu__voltar { width: 40px; height: 40px; }
+  .simu__header .btn-ico { padding: 9px 14px; font-size: 17px; }
+  .simu__modo .segmented button { padding: 9px 16px; font-size: 13px; }
+
+  .simu__cta { padding: 12px 24px; gap: 16px; }
+  .simu__preco strong { font-size: 20px; }
+  .btn-primario { padding: 13px 28px; font-size: 15px; }
+
+  .simu__tabs button { padding: 12px 4px 14px; font-size: 12px; min-height: 56px; }
+  .simu__tabs-ico { font-size: 21px; }
+
+  .sheet { height: 62vh; height: 62dvh; }
+  .sheet__head strong { font-size: 16px; }
+  .sheet__body .ambiente-card { flex: 1 1 30%; height: 120px; }
 }

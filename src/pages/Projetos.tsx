@@ -75,19 +75,19 @@ export function Projetos() {
           <h1>Projetos</h1>
           <p className="tela__sub">DF Mármores e Granitos</p>
         </div>
-        <div className="tela__acoes">
-          <button
-            className="btn-ico"
-            onClick={alternarTema}
-            title={tema === "escuro" ? "Usar tema claro" : "Usar tema escuro"}
-          >
-            {tema === "escuro" ? "☀" : "☾"}
-          </button>
-          <button className="btn-primario" onClick={iniciarNovoProjeto}>
-            Novo projeto
-          </button>
-        </div>
+        <button
+          className="btn-ico tela__tema"
+          onClick={alternarTema}
+          title={tema === "escuro" ? "Usar tema claro" : "Usar tema escuro"}
+        >
+          {tema === "escuro" ? "☀" : "☾"}
+        </button>
       </header>
+
+      {/* ação principal — a única coisa que precisa saltar aos olhos aqui */}
+      <button className="btn-primario tela__novo" onClick={iniciarNovoProjeto}>
+        + Novo projeto
+      </button>
 
       <div className="tela__backup">
         <input
@@ -101,10 +101,10 @@ export function Projetos() {
             e.target.value = "";
           }}
         />
-        <button className="btn-ghost" onClick={() => inputArquivo.current?.click()}>
+        <button className="link-discreto" onClick={() => inputArquivo.current?.click()}>
           Importar backup
         </button>
-        <button className="btn-ghost" onClick={() => void exportarTudo()}>
+        <button className="link-discreto" onClick={() => void exportarTudo()}>
           Exportar tudo{naoExportados > 0 ? ` (${naoExportados} sem cópia)` : ""}
         </button>
         {aviso && (
