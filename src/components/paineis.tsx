@@ -1,11 +1,14 @@
 /**
- * Painéis flutuantes do palco:
- *  - esquerda (PainelCaracteristicas): peça, acabamento, frontão e saia por lado,
- *    e cada recorte nos mínimos detalhes
- *  - direita (PainelPedras): catálogo de pedras por família, com amostra e preço
+ * Painéis de cada etapa do fluxo guiado:
+ *  - PainelPeca: espessura + altura de instalação (vive dentro da etapa Medidas)
+ *  - PainelRecortes: cuba, cooktop, furos, área molhada — só isso
+ *  - PainelAcabamentos: frontão / saia / reforço / borda, com porta Sim-Não
+ *    antes de mostrar o detalhe por lado (etapa própria "Acabamentos")
+ *  - PainelPedras: catálogo de pedras por família, com amostra e preço
  */
 import { useEffect, useState } from "react";
 import { CUBAS, FAMILIAS, MATERIAIS, type Familia } from "@/domain/catalogo";
+import { DEFAULTS, PRESETS } from "@/domain/presets";
 import type {
   Lado,
   PosicaoRecorte,
@@ -35,6 +38,46 @@ const LADOS_SAIA: { lado: Lado; label: string }[] = [
   { lado: "esquerdo", label: "Esquerda" },
   { lado: "direito", label: "Direita" },
 ];
+const TODOS_LADOS: Lado[] = ["frontal", "traseiro", "esquerdo", "direito"];
+
+// ===================== Peça (espessura + altura) =====================
+
+/** Vive dentro da etapa "Medidas" — são medidas também, não recortes. */
+export function PainelPeca() {
+  const bancada = useProjectStore((s) => s.projeto.bancada);
+  const setEspessura = useProjectStore((s) => s.setEspessura);
+  const setAlturaInstalacao = useProjectStore((s) => s.setAlturaInstalacao);
+
+  return (
+    <section className="painel-l__grupo">
+      <span className="painel-l__titulo">Peça</span>
+      <div className="linha2">
+        <div className="campo">
+          <span className="campo__label">Espessura</span>
+          <div className="segmented">
+            {[20, 30].map((mm) => (
+              <button
+                key={mm}
+                className={bancada.espessura === mm ? "is-active" : ""}
+                onClick={() => setEspessura(mm)}
+              >
+                {mm / 10} cm
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <SliderCm
+        label="Altura de instalação"
+        valueMm={bancada.alturaInstalacao}
+        onChangeMm={setAlturaInstalacao}
+        minMm={700}
+        maxMm={1100}
+        stepMm={10}
+      />
+    </section>
+  );
+}
 
 // ===================== Pedras =====================
 
@@ -92,21 +135,163 @@ export function PainelPedras() {
   );
 }
 
-// ===================== Características (esquerda) =====================
+// ===================== Acabamentos (frontão / saia / reforço / borda) =====================
 
-export function PainelComponentes() {
-  const bancada = useProjectStore((s) => s.projeto.bancada);
+/** Sim/Não que só revela o detalhe (lado, altura) depois do "Sim". */
+function PortaSimNao({
+  pergunta,
+  ligado,
+  onLigar,
+  onDesligar,
+  children,
+}: {
+  pergunta: string;
+  ligado: boolean;
+  onLigar: () => void;
+  onDesligar: () => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <section className="painel-l__grupo">
+      <div className="porta">
+        <span className="painel-l__titulo">{pergunta}</span>
+        <div className="segmented segmented--simnao">
+          <button className={!ligado ? "is-active" : ""} onClick={onDesligar}>
+            Não
+          </button>
+          <button className={ligado ? "is-active" : ""} onClick={onLigar}>
+            Sim
+          </button>
+        </div>
+      </div>
+      {ligado && <div className="porta__detalhe">{children}</div>}
+    </section>
+  );
+}
+
+export function PainelAcabamentos() {
+  const ambiente = useProjectStore((s) => s.projeto.ambiente);
   const complementos = useProjectStore((s) => s.projeto.complementos);
-  const recortes = useProjectStore((s) => s.projeto.recortes);
-  const trechos = bancada.trechos;
   const acabamento = useProjectStore((s) => s.projeto.acabamentoBorda);
   const tabela = useProjectStore((s) => s.tabela);
-
-  const setEspessura = useProjectStore((s) => s.setEspessura);
-  const setAlturaInstalacao = useProjectStore((s) => s.setAlturaInstalacao);
   const setAcabamento = useProjectStore((s) => s.setAcabamento);
   const setAbaLado = useProjectStore((s) => s.setAbaLado);
   const setAbaReforco = useProjectStore((s) => s.setAbaReforco);
+
+  const aba = (tipo: "frontao" | "saia", lado: Lado) =>
+    complementos.find((c) => c.tipo === tipo && c.lado === lado);
+  const temFrontao = complementos.some((c) => c.tipo === "frontao" && c.altura > 0);
+  const temSaia = complementos.some((c) => c.tipo === "saia" && c.altura > 0);
+
+  const ligar = (tipo: "frontao" | "saia") => {
+    const preset = PRESETS[ambiente];
+    const lados = tipo === "frontao" ? preset.frontaoLados : preset.saiaLados;
+    const primeiroLado = lados[0] ?? (tipo === "frontao" ? "traseiro" : "frontal");
+    const altura =
+      tipo === "frontao"
+        ? DEFAULTS.frontao
+        : preset.saiaAltura === "piso"
+          ? DEFAULTS.saia
+          : preset.saiaAltura;
+    setAbaLado(tipo, primeiroLado, altura);
+  };
+  const desligar = (tipo: "frontao" | "saia") => {
+    for (const lado of TODOS_LADOS) setAbaLado(tipo, lado, 0);
+  };
+
+  return (
+    <div className="painel-l">
+      <PortaSimNao
+        pergunta="Frontão"
+        ligado={temFrontao}
+        onLigar={() => ligar("frontao")}
+        onDesligar={() => desligar("frontao")}
+      >
+        {LADOS_FRONTAO.map(({ lado, label }) => {
+          const c = aba("frontao", lado);
+          return (
+            <div key={lado} className="aba-lado">
+              <SliderMm
+                label={label}
+                valueMm={c?.altura ?? 0}
+                onChangeMm={(mm) => setAbaLado("frontao", lado, mm)}
+                minMm={0}
+                maxMm={300}
+              />
+              {c && (
+                <label className="check check--sm">
+                  <input
+                    type="checkbox"
+                    checked={!!c.reforco}
+                    onChange={(e) => setAbaReforco("frontao", lado, e.target.checked)}
+                  />
+                  Reforço
+                </label>
+              )}
+            </div>
+          );
+        })}
+      </PortaSimNao>
+
+      <PortaSimNao
+        pergunta="Saia / painel lateral"
+        ligado={temSaia}
+        onLigar={() => ligar("saia")}
+        onDesligar={() => desligar("saia")}
+      >
+        {LADOS_SAIA.map(({ lado, label }) => {
+          const c = aba("saia", lado);
+          return (
+            <div key={lado} className="aba-lado">
+              <SliderMm
+                label={label}
+                valueMm={c?.altura ?? 0}
+                onChangeMm={(mm) => setAbaLado("saia", lado, mm)}
+                minMm={0}
+                maxMm={1000}
+                stepMm={10}
+              />
+              {c && (
+                <label className="check check--sm">
+                  <input
+                    type="checkbox"
+                    checked={!!c.reforco}
+                    onChange={(e) => setAbaReforco("saia", lado, e.target.checked)}
+                  />
+                  Reforço da saia
+                </label>
+              )}
+            </div>
+          );
+        })}
+      </PortaSimNao>
+
+      <section className="painel-l__grupo">
+        <span className="painel-l__titulo">Acabamento de borda</span>
+        <div className="chips">
+          {ACABAMENTOS.map((o) => (
+            <button
+              key={o.value}
+              className={`chip ${acabamento.tipo === o.value ? "is-active" : ""}`}
+              onClick={() =>
+                setAcabamento({ tipo: o.value, precoMetroLinear: tabela.acabamentoBorda[o.value] })
+              }
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ===================== Recortes (cuba, cooktop, furos, área molhada) =====================
+
+export function PainelRecortes() {
+  const bancada = useProjectStore((s) => s.projeto.bancada);
+  const recortes = useProjectStore((s) => s.projeto.recortes);
+  const trechos = bancada.trechos;
   const addRecorte = useProjectStore((s) => s.addRecorte);
   const removeRecorte = useProjectStore((s) => s.removeRecorte);
 
@@ -115,9 +300,6 @@ export function PainelComponentes() {
   useEffect(() => {
     setAbertoRec(recortes[recortes.length - 1]?.id ?? null);
   }, [recortes.length]);
-
-  const aba = (tipo: "frontao" | "saia", lado: Lado) =>
-    complementos.find((c) => c.tipo === tipo && c.lado === lado);
 
   const areasMolhadas = recortes.filter((r) => r.tipo === "area_molhada");
 
@@ -129,120 +311,8 @@ export function PainelComponentes() {
 
   return (
     <div className="painel-l">
-      {/* ---- Peça ---- */}
       <section className="painel-l__grupo">
-        <span className="painel-l__titulo">Peça</span>
-        <div className="linha2">
-          <div className="campo">
-            <span className="campo__label">Espessura</span>
-            <div className="segmented">
-              {[20, 30].map((mm) => (
-                <button
-                  key={mm}
-                  className={bancada.espessura === mm ? "is-active" : ""}
-                  onClick={() => setEspessura(mm)}
-                >
-                  {mm / 10} cm
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <SliderCm
-          label="Altura de instalação"
-          valueMm={bancada.alturaInstalacao}
-          onChangeMm={setAlturaInstalacao}
-          minMm={700}
-          maxMm={1100}
-          stepMm={10}
-        />
-      </section>
-
-      {/* ---- Opções avançadas: acabamento, frontão, saia ---- */}
-      <details className="avancado">
-        <summary>
-          <span>Opções avançadas</span>
-          <em>Acabamento, frontão, saia</em>
-        </summary>
-
-        <section className="painel-l__grupo">
-          <span className="painel-l__titulo">Acabamento de borda</span>
-          <div className="chips">
-            {ACABAMENTOS.map((o) => (
-              <button
-                key={o.value}
-                className={`chip ${acabamento.tipo === o.value ? "is-active" : ""}`}
-                onClick={() =>
-                  setAcabamento({ tipo: o.value, precoMetroLinear: tabela.acabamentoBorda[o.value] })
-                }
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="painel-l__grupo">
-          <span className="painel-l__titulo">Frontão</span>
-          {LADOS_FRONTAO.map(({ lado, label }) => {
-            const c = aba("frontao", lado);
-            return (
-              <div key={lado} className="aba-lado">
-                <SliderMm
-                  label={label}
-                  valueMm={c?.altura ?? 0}
-                  onChangeMm={(mm) => setAbaLado("frontao", lado, mm)}
-                  minMm={0}
-                  maxMm={300}
-                />
-                {c && (
-                  <label className="check check--sm">
-                    <input
-                      type="checkbox"
-                      checked={!!c.reforco}
-                      onChange={(e) => setAbaReforco("frontao", lado, e.target.checked)}
-                    />
-                    Reforço
-                  </label>
-                )}
-              </div>
-            );
-          })}
-        </section>
-
-        <section className="painel-l__grupo">
-          <span className="painel-l__titulo">Saia / painel lateral</span>
-          {LADOS_SAIA.map(({ lado, label }) => {
-            const c = aba("saia", lado);
-            return (
-              <div key={lado} className="aba-lado">
-                <SliderMm
-                  label={label}
-                  valueMm={c?.altura ?? 0}
-                  onChangeMm={(mm) => setAbaLado("saia", lado, mm)}
-                  minMm={0}
-                  maxMm={1000}
-                  stepMm={10}
-                />
-                {c && (
-                  <label className="check check--sm">
-                    <input
-                      type="checkbox"
-                      checked={!!c.reforco}
-                      onChange={(e) => setAbaReforco("saia", lado, e.target.checked)}
-                    />
-                    Reforço da saia
-                  </label>
-                )}
-              </div>
-            );
-          })}
-        </section>
-      </details>
-
-      {/* ---- Recortes ---- */}
-      <section className="painel-l__grupo">
-        <span className="painel-l__titulo">Recortes</span>
+        <span className="painel-l__titulo">Toque pra adicionar</span>
         <div className="chips">
           <button
             className="chip"
@@ -315,34 +385,44 @@ export function PainelComponentes() {
             + Furo dosador
           </button>
         </div>
-
-        {recortes.map((r) => {
-          const mesmoTipo = recortes.filter((x) => x.tipo === r.tipo);
-          const n = mesmoTipo.length > 1 ? ` ${mesmoTipo.indexOf(r) + 1}` : "";
-          const aberto = abertoRec === r.id;
-          return (
-            <div key={r.id} className={`comp-card ${aberto ? "is-open" : ""}`}>
-              <button
-                className="comp-card__head"
-                onClick={() => setAbertoRec(aberto ? null : r.id)}
-              >
-                <span>{rotulo(r.tipo)}{n}</span>
-                <span className="comp-card__chev">{aberto ? "▾" : "▸"}</span>
-              </button>
-              {aberto && (
-                <RecorteEditor
-                  r={r}
-                  trechos={trechos}
-                  onRemove={() => {
-                    removeRecorte(r.id);
-                    setAbertoRec(null);
-                  }}
-                />
-              )}
-            </div>
-          );
-        })}
+        {recortes.length === 0 && (
+          <p className="painel-l__dica">
+            Nenhum recorte ainda. Toque numa opção acima se a peça tiver cuba, cooktop ou furo —
+            senão, é só continuar.
+          </p>
+        )}
       </section>
+
+      {recortes.length > 0 && (
+        <section className="painel-l__grupo">
+          {recortes.map((r) => {
+            const mesmoTipo = recortes.filter((x) => x.tipo === r.tipo);
+            const n = mesmoTipo.length > 1 ? ` ${mesmoTipo.indexOf(r) + 1}` : "";
+            const aberto = abertoRec === r.id;
+            return (
+              <div key={r.id} className={`comp-card ${aberto ? "is-open" : ""}`}>
+                <button
+                  className="comp-card__head"
+                  onClick={() => setAbertoRec(aberto ? null : r.id)}
+                >
+                  <span>{rotulo(r.tipo)}{n}</span>
+                  <span className="comp-card__chev">{aberto ? "▾" : "▸"}</span>
+                </button>
+                {aberto && (
+                  <RecorteEditor
+                    r={r}
+                    trechos={trechos}
+                    onRemove={() => {
+                      removeRecorte(r.id);
+                      setAbertoRec(null);
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </section>
+      )}
     </div>
   );
 }

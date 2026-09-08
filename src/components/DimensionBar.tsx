@@ -1,19 +1,16 @@
 /**
- * Barra de medidas no topo do palco: pills de formato + alternância
- * Deslizar/Digitar + comprimento(s) e profundidade.
+ * Medidas da peça: alternância Deslizar/Digitar + comprimento(s) por trecho
+ * (rotulados A/B/C quando há mais de um — o formato já foi escolhido na
+ * etapa anterior) + profundidade.
  */
 import { useState } from "react";
-import { FORMATO_LABEL } from "@/domain/presets";
-import type { Formato } from "@/domain/project";
 import { useProjectStore } from "@/store/projectStore";
 import { CampoCm, SliderCm } from "./campos";
 
-const FORMATOS: Formato[] = ["linear", "L", "P", "U"];
 const NOME = ["A", "B", "C"];
 
 export function DimensionBar() {
   const bancada = useProjectStore((s) => s.projeto.bancada);
-  const setFormato = useProjectStore((s) => s.setFormato);
   const setTrecho = useProjectStore((s) => s.setTrecho);
   const [modo, setModo] = useState<"barra" | "digitar">("barra");
 
@@ -24,15 +21,9 @@ export function DimensionBar() {
   return (
     <div className="medidas-bar">
       <div className="medidas-bar__pills">
-        {FORMATOS.map((f) => (
-          <button
-            key={f}
-            className={`pill ${bancada.formato === f ? "is-active" : ""}`}
-            onClick={() => setFormato(f)}
-          >
-            {FORMATO_LABEL[f]}
-          </button>
-        ))}
+        <span className="painel-l__titulo">
+          {bancada.trechos.length > 1 ? "Comprimento de cada trecho" : "Comprimento"}
+        </span>
         <div className="medidas-bar__toggle">
           <button className={modo === "barra" ? "is-active" : ""} onClick={() => setModo("barra")}>
             Deslizar

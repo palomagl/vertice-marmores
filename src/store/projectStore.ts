@@ -16,7 +16,8 @@ import {
   nomeProjetoPadrao,
   novoId,
   projetoNovo,
-  trechosPadrao,
+  realocarRecortesOrfaos,
+  trechosAoTrocarFormato,
 } from "@/domain/presets";
 import { TABELA_PADRAO, type TabelaPrecos } from "@/domain/tabelaPrecos";
 import { proximoNumeroProposta } from "@/domain/numero";
@@ -58,6 +59,12 @@ interface ProjectState {
   tema: Tema;
   /** modal "Novo projeto" (passo do nome do cliente) aberto */
   criandoProjeto: boolean;
+  /**
+   * true só entre criar um projeto e o Configurador montar — diz pro editor
+   * se deve começar do zero (Ambiente) ou pular pra onde os dados pedem
+   * (ver `primeiraEtapaPendente`, EtapaRail.tsx).
+   */
+  recemCriado: boolean;
 
   setAba: (aba: Aba) => void;
   setModo: (modo: ModoVisualizacao) => void;
@@ -98,6 +105,13 @@ interface ProjectState {
   setAbaReforco: (tipo: "frontao" | "saia", lado: Lado, reforco: boolean) => void;
   /** atribui o número sequencial da proposta, se ainda não tiver */
   garantirNumeroProposta: () => void;
+  /**
+   * "Formatura": o vendedor completou o fluxo guiado uma vez nesta sessão
+   * (chegou na Revisão) — a partir daqui o Configurador usa o modo de
+   * edição rápida pro resto da sessão, mesmo sem sair da tela. Reabrir o
+   * projeto depois (abrirProjeto) já cai em edição de qualquer forma.
+   */
+  finalizarCriacao: () => void;
   /** distância de entrega em km (undefined = não informado; 0 = retirada na loja) */
   setDistanciaKm: (km: number | undefined) => void;
 
@@ -142,6 +156,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
     apresentacao: false,
     tema: lerTema(),
     criandoProjeto: false,
+    recemCriado: false,
 
     setAba: (aba) => set({ aba }),
     setModo: (modo) => set({ modo }),
@@ -219,6 +234,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
         aba: "medidas",
         apresentacao: false,
         criandoProjeto: false,
+        recemCriado: true,
         historico: [],
         futuro: [],
       });
@@ -233,6 +249,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
         projeto,
         aba: "medidas",
         apresentacao: false,
+        recemCriado: false,
         historico: [],
         futuro: [],
       });
@@ -251,7 +268,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
 
     aplicarAmbiente: (ambiente) =>
       alterar((p) => {
-        const { formato, trechos, complementos, recortes } = montarAmbiente(
+        const { formato, trechos, complementos, recortes, alturaInstalacao } = montarAmbiente(
           ambiente,
           p.bancada.espessura,
           p.bancada.alturaInstalacao,
@@ -259,6 +276,10 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
         p.ambiente = ambiente;
         p.bancada.formato = formato;
         p.bancada.trechos = trechos;
+        // a maioria dos ambientes não sobrescreve a altura (usa a corrente,
+        // igual sempre foi); só ambientes com altura própria (ex.: aparador,
+        // ~80cm em vez dos 90cm de bancada de cozinha) mudam isso
+        p.bancada.alturaInstalacao = alturaInstalacao;
         // troca frontão/saia/recortes pelos do ambiente; mantém extras que o vendedor tenha adicionado à mão
         p.complementos = [
           ...p.complementos.filter((c) => c.tipo !== "frontao" && c.tipo !== "saia"),
@@ -274,13 +295,9 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
       alterar((p) => {
         const prof = p.bancada.trechos[0]?.profundidade ?? PRESETS[p.ambiente].profundidade;
         p.bancada.formato = formato;
-        const alvo = trechosPadrao(formato, prof).length;
-        while (p.bancada.trechos.length < alvo) {
-          p.bancada.trechos.push({ comprimento: 1800, profundidade: prof });
-        }
-        if (p.bancada.trechos.length > alvo) {
-          p.bancada.trechos = p.bancada.trechos.slice(0, alvo);
-        }
+        p.bancada.trechos = trechosAoTrocarFormato(p.bancada.trechos, formato, prof);
+        // recorte cujo trecho deixou de existir não fica fantasma no estado
+        p.recortes = realocarRecortesOrfaos(p.recortes, p.bancada.trechos.length);
       }),
 
     setTrecho: (index, patch) =>
@@ -329,6 +346,8 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
       const numero = proximoNumeroProposta();
       alterar((p) => void (p.numero = numero));
     },
+
+    finalizarCriacao: () => set({ recemCriado: false }),
 
     setDistanciaKm: (km) =>
       alterar((p) => {

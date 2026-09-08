@@ -1,22 +1,37 @@
 /**
- * Configurador — 3D em tela cheia, controles flutuando por cima.
- *  - Tablet / desktop (paisagem): painéis laterais flutuantes sempre visíveis,
- *    faixa de ambientes e barra de medidas no topo.
- *  - Celular / tablet retrato: 3D sangra por trás dos controles; barra INFERIOR
- *    de 4 abas abre um bottom sheet arrastável (~55% da tela).
- * Layout inspirado no simuladormarmoraria.com.br.
+ * Configurador — DOIS modos, uma arquitetura só por baixo.
+ *
+ * MODO GUIADO (projeto recém-criado, `recemCriado` na store): a experiência
+ * de ensinar a montar a primeira peça. EtapaRail no topo (progresso ✓/●/○),
+ * painel abre sozinho na etapa atual com "← Voltar"/"Continuar →".
+ *
+ * MODO EDIÇÃO (projeto já existente, ou depois que o vendedor termina o
+ * tour guiado uma vez — ver `finalizarCriacao`): a sensação do configurador
+ * original. Nada abre sozinho; EdicaoBar no topo é só uma caixa de
+ * ferramentas (sem progresso); o painel de cada assunto abre sob demanda e
+ * fecha sem "próximo passo" nenhum. "Revisar orçamento" fica disponível
+ * como ação, não como conclusão de fluxo.
+ *
+ * Os DOIS modos reaproveitam o mesmo painel único ("bottom sheet", mesmo
+ * mecanismo em qualquer tamanho de tela) e os mesmos componentes de
+ * conteúdo (AmbienteStrip, FormatoPicker, PainelPeca/Recortes/Acabamentos/
+ * Pedras, Revisao) — só a moldura ao redor (topo + rodapé do painel) muda.
  */
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { materialPorId } from "@/domain/catalogo";
 import { AMBIENTE_LABEL, FORMATO_LABEL } from "@/domain/presets";
 import { calcularOrcamento, rotuloTotal } from "@/domain/quote";
-import { useProjectStore, type Aba, type ModoVisualizacao } from "@/store/projectStore";
+import { useProjectStore, type ModoVisualizacao } from "@/store/projectStore";
 import { AmbienteStrip } from "./AmbienteStrip";
 import { Segmented } from "./campos";
 import { DimensionBar } from "./DimensionBar";
 import { Drawing2D } from "./Drawing2D";
-import { PainelComponentes, PainelPedras } from "./paineis";
+import { EdicaoBar } from "./EdicaoBar";
+import { ETAPAS, EtapaRail, etapaConcluida, type EtapaId } from "./EtapaRail";
+import { FormatoPicker } from "./FormatoPicker";
+import { OnboardingModal } from "./OnboardingModal";
+import { PainelAcabamentos, PainelPeca, PainelPedras, PainelRecortes } from "./paineis";
 import { PainelOrcamento } from "./PainelOrcamento";
 import { PositionRuler } from "./PositionRuler";
 import { Revisao } from "./Revisao";
@@ -25,29 +40,13 @@ const Scene3D = lazy(() =>
   import("./Scene3D").then((m) => ({ default: m.Scene3D })),
 );
 
-/**
- * Abas da barra inferior (celular/tablet) — na ORDEM do fluxo guiado
- * (Ambiente → Medidas → Recortes → Pedra → Revisão). O número exibido em
- * cada botão vem da posição no array, não é um campo à parte.
- */
-const ABAS: { id: Aba; label: string; ico: string }[] = [
-  { id: "ambientes", label: "Ambiente", ico: "⌂" },
-  { id: "medidas", label: "Medidas", ico: "↔" },
-  { id: "componentes", label: "Recortes", ico: "▤" },
-  { id: "pedras", label: "Pedra", ico: "◈" },
-];
-
-const TITULO_SHEET: Record<Aba, string> = {
-  ambientes: "Escolha o ambiente",
-  medidas: "Informe as medidas",
-  componentes: "Recortes e opções avançadas",
-  pedras: "Escolha a pedra",
-};
-
 const MODOS: { value: ModoVisualizacao; label: string }[] = [
   { value: "3d", label: "3D" },
   { value: "2d", label: "2D" },
 ];
+
+/** última etapa de conteúdo antes da Revisão (a etapa "revisao" não tem painel próprio — abre o modal) */
+const ULTIMA_ETAPA_CONTEUDO = ETAPAS[ETAPAS.length - 2].id;
 
 export function Configurador() {
   const projeto = useProjectStore((s) => s.projeto);
@@ -59,6 +58,8 @@ export function Configurador() {
   const tema = useProjectStore((s) => s.tema);
   const alternarTema = useProjectStore((s) => s.alternarTema);
   const setNome = useProjectStore((s) => s.setNome);
+  const recemCriado = useProjectStore((s) => s.recemCriado);
+  const finalizarCriacao = useProjectStore((s) => s.finalizarCriacao);
   const iniciarNovoProjeto = useProjectStore((s) => s.iniciarNovoProjeto);
   const desfazer = useProjectStore((s) => s.desfazer);
   const refazer = useProjectStore((s) => s.refazer);
@@ -67,9 +68,9 @@ export function Configurador() {
 
   const [menu, setMenu] = useState(false);
   const [preco, setPreco] = useState(false);
-  /** aba aberta como bottom sheet no celular/tablet (null = fechada) */
-  const [sheet, setSheet] = useState<Aba | null>(null);
-  /** modal de revisão ("CONFIGURAÇÃO CONCLUÍDA → REVISAR → GERAR ORÇAMENTO") */
+  const [etapaAtual, setEtapaAtual] = useState<EtapaId>("ambiente");
+  /** painel da etapa aberto (mostrando a pergunta) ou recolhido (só o 3D) */
+  const [painelAberto, setPainelAberto] = useState(true);
   const [revisao, setRevisao] = useState(false);
   const [dragY, setDragY] = useState(0);
   const dragRef = useRef<number | null>(null);
@@ -81,6 +82,18 @@ export function Configurador() {
     [projeto, tabela],
   );
   const nomeMaterial = mat?.nome ?? "Selecione a pedra";
+
+  const idxAtual = ETAPAS.findIndex((e) => e.id === etapaAtual);
+  const etapaInfo = ETAPAS[idxAtual];
+  const ultimaEtapa = etapaAtual === ULTIMA_ETAPA_CONTEUDO;
+
+  /**
+   * "recemCriado" É a fonte de verdade dos dois modos (não inventei uma
+   * segunda flag): true = tour guiado; false = edição rápida — seja porque
+   * o projeto já existia (abrirProjeto sempre zera a flag) ou porque o
+   * vendedor terminou o tour uma vez nesta sessão (finalizarCriacao).
+   */
+  const modoUI: "guiado" | "edicao" = recemCriado ? "guiado" : "edicao";
 
   // Ctrl/Cmd+Z desfaz, Ctrl+Shift+Z / Ctrl+Y refaz
   useEffect(() => {
@@ -100,7 +113,71 @@ export function Configurador() {
     return () => window.removeEventListener("keydown", onKey);
   }, [desfazer, refazer]);
 
-  useEffect(() => setDragY(0), [sheet]);
+  useEffect(() => setDragY(0), [etapaAtual, painelAberto]);
+
+  /*
+   * Ao entrar num projeto (ou trocar de projeto sem sair da rota /editor —
+   * "Novo projeto" no menu ⋮ enquanto já está no editor navega pra /editor
+   * de novo, e o React Router NÃO remonta o componente só porque a rota é a
+   * mesma; por isso o efeito depende de `projeto.id`, não roda só uma vez):
+   *
+   *   MODO GUIADO (recemCriado): abre o painel já na etapa "Ambiente" — o
+   *   tour começa do zero.
+   *
+   *   MODO EDIÇÃO (projeto já existia): NÃO abre nada sozinho. A tela
+   *   mostra a bancada; o vendedor escolhe o que quer editar pela
+   *   EdicaoBar. Nenhum modal/painel aparece por conta própria — é
+   *   deliberado, é a diferença central entre "tutorial" e "ferramenta".
+   *
+   * Depende só de `projeto.id` — NÃO de `recemCriado`. `recemCriado`
+   * também muda quando o vendedor termina o tour guiado (finalizarCriacao,
+   * dentro do MESMO projeto); se esse efeito reagisse a isso, ele rodaria
+   * de novo bem na hora de abrir a Revisão e fecharia ela sozinho
+   * (`setRevisao(false)` correndo atrás do `setRevisao(true)` de
+   * `abrirRevisao`). O valor de `recemCriado` já é lido fresco de dentro
+   * do efeito — só não precisa ser gatilho pra rodar de novo.
+   */
+  useEffect(() => {
+    setRevisao(false);
+    if (recemCriado) {
+      setEtapaAtual("ambiente");
+      setPainelAberto(true);
+    } else {
+      setEtapaAtual("ambiente");
+      setPainelAberto(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projeto.id]);
+
+  /** abre a Revisão — no modo guiado, isso também "forma" o projeto pro modo edição */
+  const abrirRevisao = () => {
+    setPainelAberto(false);
+    setRevisao(true);
+    if (modoUI === "guiado") finalizarCriacao();
+  };
+
+  /** navega pra uma etapa (rail no guiado, EdicaoBar na edição, chip da pedra, linhas da Revisão) */
+  const irPara = (id: EtapaId) => {
+    if (id === "revisao") {
+      abrirRevisao();
+      return;
+    }
+    setEtapaAtual(id);
+    setPainelAberto(true);
+  };
+  /** só existe sentido no modo guiado — avança pra próxima etapa da sequência */
+  const avancar = () => {
+    if (ultimaEtapa) {
+      abrirRevisao();
+      return;
+    }
+    const prox = ETAPAS[idxAtual + 1];
+    if (prox) irPara(prox.id);
+  };
+  const voltar = () => {
+    const ant = ETAPAS[idxAtual - 1];
+    if (ant) irPara(ant.id);
+  };
 
   const enviarProposta = () => {
     // wa.me: o telefone no caminho é o DESTINATÁRIO (como o "To:" de um e-mail).
@@ -136,7 +213,7 @@ export function Configurador() {
     if (dragRef.current == null) return;
     dragRef.current = null;
     setDragY((y) => {
-      if (y > 90) setSheet(null);
+      if (y > 90) setPainelAberto(false);
       return 0;
     });
   };
@@ -214,17 +291,20 @@ export function Configurador() {
         </header>
       )}
 
-      {/* topo — só tablet/desktop (no celular vira aba da barra inferior) */}
-      {!apresentacao && <AmbienteStrip />}
-      {!apresentacao && <DimensionBar />}
+      {!apresentacao && modoUI === "guiado" && (
+        <EtapaRail
+          atual={etapaAtual}
+          concluida={(id) => etapaConcluida(id, projeto)}
+          onIr={irPara}
+        />
+      )}
+      {!apresentacao && modoUI === "edicao" && (
+        <EdicaoBar ativa={painelAberto ? etapaAtual : null} onAbrir={irPara} />
+      )}
 
       <div className="simu__palco">
-        {modo === "3d" && (
-          <button
-            className="simu__pedra"
-            onClick={() => setSheet("pedras")}
-            title="Trocar a pedra"
-          >
+        {!apresentacao && modo === "3d" && (
+          <button className="simu__pedra" onClick={() => irPara("pedra")} title="Trocar a pedra">
             {nomeMaterial}
           </button>
         )}
@@ -245,16 +325,11 @@ export function Configurador() {
 
         {modo === "3d" && <div className="simu__hint">arraste para girar</div>}
 
-        {!apresentacao && (
-          <>
-            <aside className="simu__left">
-              <PainelComponentes />
-            </aside>
-            <aside className="simu__right">
-              <PainelPedras />
-            </aside>
-            <PositionRuler />
-          </>
+        {/* painel recolhido (arrastado pra baixo) — pastilha pra reabrir na etapa em que parou */}
+        {!apresentacao && !painelAberto && (
+          <button className="simu__reabrir" onClick={() => setPainelAberto(true)}>
+            {etapaInfo.titulo} <span>↑</span>
+          </button>
         )}
       </div>
 
@@ -290,40 +365,24 @@ export function Configurador() {
                   </>
                 )}
               </div>
-              {/*
-                Sempre clicável: em vez de travar sem explicação quando falta a
-                pedra, abre a Revisão — que mostra exatamente o que falta e
-                oferece o caminho pra resolver ali mesmo.
-              */}
-              <button className="btn-primario" onClick={() => setRevisao(true)}>
-                Revisar e gerar orçamento
+              <button
+                className="btn-primario"
+                onClick={modoUI === "guiado" ? avancar : abrirRevisao}
+              >
+                {modoUI === "guiado"
+                  ? ultimaEtapa
+                    ? "Revisar orçamento →"
+                    : "Continuar →"
+                  : "Revisar orçamento"}
               </button>
             </>
           )}
         </footer>
-
-        {!apresentacao && (
-          <nav className="simu__tabs">
-            {ABAS.map((a, i) => (
-              <button
-                key={a.id}
-                className={sheet === a.id ? "is-active" : ""}
-                onClick={() => setSheet((s) => (s === a.id ? null : a.id))}
-              >
-                <span className="simu__tabs-top">
-                  <span className="simu__tabs-ico">{a.ico}</span>
-                  <span className="simu__tabs-num">{i + 1}</span>
-                </span>
-                {a.label}
-              </button>
-            ))}
-          </nav>
-        )}
       </div>
 
-      {/* bottom sheet — só aparece no celular (CSS) */}
-      {sheet && !apresentacao && (
-        <div className="sheet-backdrop" onClick={() => setSheet(null)}>
+      {/* painel único da etapa atual — mesmo mecanismo em qualquer tamanho de tela */}
+      {!apresentacao && painelAberto && (
+        <div className="sheet-backdrop" onClick={() => setPainelAberto(false)}>
           <div
             className="sheet"
             onClick={(e) => e.stopPropagation()}
@@ -338,34 +397,50 @@ export function Configurador() {
             >
               <div className="sheet__grab" />
               <div className="sheet__head">
-                <strong>{TITULO_SHEET[sheet]}</strong>
+                {/* modo guiado pergunta ("Qual é o formato...?"); edição só nomeia a ferramenta ("Formato") */}
+                <strong>{modoUI === "guiado" ? etapaInfo.pergunta : etapaInfo.titulo}</strong>
                 <button
-                  onClick={() => setSheet(null)}
-                  // o header inteiro é área de arrastar (onPointerDown captura o
-                  // ponteiro no .sheet__handle) — sem isso, o toque no ✕ vira
-                  // início de arraste em vez de clique, e o botão não fecha nada.
+                  onClick={() => setPainelAberto(false)}
+                  // o header inteiro é área de arrastar — sem isso, o toque aqui
+                  // vira início de arraste em vez de clique (ver Configurador antigo)
                   onPointerDown={(e) => e.stopPropagation()}
-                  aria-label="Fechar"
+                  aria-label="Ver a peça inteira"
+                  title="Recolher e ver a peça"
                 >
-                  ✕
+                  ⌄
                 </button>
               </div>
             </div>
             <div className="sheet__body">
-              {sheet === "ambientes" && (
-                <AmbienteStrip onPick={() => setSheet(null)} />
-              )}
-              {sheet === "pedras" && <PainelPedras />}
-              {sheet === "componentes" && <PainelComponentes />}
-              {sheet === "medidas" && (
+              {etapaAtual === "ambiente" && <AmbienteStrip />}
+              {etapaAtual === "formato" && <FormatoPicker />}
+              {etapaAtual === "medidas" && (
                 <>
+                  <PainelPeca />
                   <DimensionBar />
-                  <div className="sheet__regua">
-                    <PositionRuler />
-                  </div>
                 </>
               )}
+              {etapaAtual === "recortes" && (
+                <>
+                  <PainelRecortes />
+                  <PositionRuler />
+                </>
+              )}
+              {etapaAtual === "acabamentos" && <PainelAcabamentos />}
+              {etapaAtual === "pedra" && <PainelPedras />}
             </div>
+            {/* rodapé Voltar/Continuar só existe no modo guiado — no modo edição
+                não há "próximo passo": fecha pelo ⌄ ou tocando fora do painel */}
+            {modoUI === "guiado" && (
+              <div className="sheet__footer">
+                <button className="btn-ghost" onClick={voltar} disabled={idxAtual === 0}>
+                  ← Voltar
+                </button>
+                <button className="btn-primario" onClick={avancar}>
+                  {ultimaEtapa ? "Revisar orçamento →" : "Continuar →"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -373,12 +448,14 @@ export function Configurador() {
       {revisao && !apresentacao && (
         <Revisao
           onFechar={() => setRevisao(false)}
-          onEditar={(aba) => {
+          onEditar={(etapa) => {
             setRevisao(false);
-            setSheet(aba);
+            irPara(etapa);
           }}
         />
       )}
+
+      {!apresentacao && <OnboardingModal />}
     </div>
   );
 }

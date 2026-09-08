@@ -14,6 +14,10 @@ const AMBIENTES: Ambiente[] = [
   "ilha",
   "balcao",
   "lavanderia",
+  "churrasqueira",
+  "nicho",
+  "tanque",
+  "aparador",
 ];
 
 const GRAD: Record<Ambiente, string> = {
@@ -23,6 +27,10 @@ const GRAD: Record<Ambiente, string> = {
   ilha: "linear-gradient(135deg, #e6e0d5, #c9bfaa)",
   balcao: "linear-gradient(135deg, #d7cdbd, #a9977c)",
   lavanderia: "linear-gradient(135deg, #dfe1de, #bcc0bb)",
+  churrasqueira: "linear-gradient(135deg, #d8c3a5, #a97d5d)",
+  nicho: "linear-gradient(135deg, #e4ded2, #c2b8a3)",
+  tanque: "linear-gradient(135deg, #dee2e1, #b7c0be)",
+  aparador: "linear-gradient(135deg, #ded3c3, #b3a189)",
 };
 
 export function AmbienteStrip({ onPick }: { onPick?: () => void } = {}) {

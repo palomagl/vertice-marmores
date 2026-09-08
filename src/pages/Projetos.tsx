@@ -1,17 +1,16 @@
 /**
  * Tela inicial (especificação, seção 2): lista de projetos, busca por nome do
  * cliente, botão de novo projeto. Tudo vem do banco local.
+ *
+ * Backup (.json) NÃO fica mais aqui — é manutenção/segurança, não parte do
+ * fluxo diário de venda. Mora em /precos ("Configurações").
  */
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { InstalarBanner } from "@/components/InstalarBanner";
 import { AMBIENTE_LABEL, FORMATO_LABEL } from "@/domain/presets";
 import { calcularOrcamento, rotuloTotal } from "@/domain/quote";
-import {
-  exportarProjetos,
-  exportarTodos,
-  importarBackup,
-} from "@/lib/backup";
+import { exportarProjetos } from "@/lib/backup";
 import { useProjectStore } from "@/store/projectStore";
 
 export function Projetos() {
@@ -25,8 +24,7 @@ export function Projetos() {
   const alternarTema = useProjectStore((s) => s.alternarTema);
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
-  const [aviso, setAviso] = useState<string | null>(null);
-  const inputArquivo = useRef<HTMLInputElement>(null);
+  const [menuAberto, setMenuAberto] = useState<string | null>(null);
 
   const filtrada = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -38,32 +36,9 @@ export function Projetos() {
     );
   }, [lista, busca]);
 
-  const naoExportados = lista.filter((p) => !p.exportadoEm).length;
-
   const abrir = async (id: string) => {
     await abrirProjeto(id);
     navigate("/editor");
-  };
-
-  const exportarTudo = async () => {
-    const n = await exportarTodos();
-    await recarregarLista();
-    setAviso(n ? `${n} projeto(s) exportado(s).` : "Nada para exportar.");
-  };
-
-  const importar = async (arquivo: File) => {
-    try {
-      const res = await importarBackup(await arquivo.text());
-      await recarregarLista();
-      const partes = [
-        res.novos && `${res.novos} novo(s)`,
-        res.atualizados && `${res.atualizados} atualizado(s)`,
-        res.ignorados.length && `${res.ignorados.length} ignorado(s)`,
-      ].filter(Boolean);
-      setAviso(`Importação: ${partes.join(", ") || "nada a importar"}.`);
-    } catch (e) {
-      setAviso(e instanceof Error ? e.message : "Falha ao importar.");
-    }
   };
 
   return (
@@ -88,31 +63,6 @@ export function Projetos() {
       <button className="btn-primario tela__novo" onClick={iniciarNovoProjeto}>
         + Novo projeto
       </button>
-
-      <div className="tela__backup">
-        <input
-          ref={inputArquivo}
-          type="file"
-          accept="application/json,.json"
-          hidden
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void importar(f);
-            e.target.value = "";
-          }}
-        />
-        <button className="link-discreto" onClick={() => inputArquivo.current?.click()}>
-          Importar backup
-        </button>
-        <button className="link-discreto" onClick={() => void exportarTudo()}>
-          Exportar tudo{naoExportados > 0 ? ` (${naoExportados} sem cópia)` : ""}
-        </button>
-        {aviso && (
-          <span className="tela__backup-aviso" onClick={() => setAviso(null)}>
-            {aviso}
-          </span>
-        )}
-      </div>
 
       <input
         className="tela__busca"
@@ -148,28 +98,49 @@ export function Projetos() {
                   )}
                 </div>
               </button>
-              <button
-                className="linha-projeto__acao"
-                title="Exportar este projeto (.json)"
-                onClick={() => void exportarProjetos([p]).then(recarregarLista)}
-              >
-                ⬇
-              </button>
-              <button
-                className="linha-projeto__excluir"
-                title="Excluir definitivamente"
-                onClick={() => {
-                  if (
-                    confirm(
-                      `Excluir "${p.nome || "Projeto sem identificação"}"?\n\nA exclusão é definitiva e apaga também os dados do cliente deste projeto.`,
-                    )
-                  ) {
-                    void excluirProjeto(p.id);
-                  }
-                }}
-              >
-                ✕
-              </button>
+              <div className="linha-projeto__menu-wrap">
+                <button
+                  className="linha-projeto__acao"
+                  title="Mais ações"
+                  onClick={() => setMenuAberto((v) => (v === p.id ? null : p.id))}
+                >
+                  ⋮
+                </button>
+                {menuAberto === p.id && (
+                  <>
+                    <button
+                      className="click-backdrop"
+                      aria-label="Fechar"
+                      onClick={() => setMenuAberto(null)}
+                    />
+                    <div className="menu menu--projeto">
+                      <button
+                        onClick={() => {
+                          setMenuAberto(null);
+                          void exportarProjetos([p]).then(recarregarLista);
+                        }}
+                      >
+                        Exportar (.json)
+                      </button>
+                      <button
+                        className="menu__perigo"
+                        onClick={() => {
+                          setMenuAberto(null);
+                          if (
+                            confirm(
+                              `Excluir "${p.nome || "Projeto sem identificação"}"?\n\nA exclusão é definitiva e apaga também os dados do cliente deste projeto.`,
+                            )
+                          ) {
+                            void excluirProjeto(p.id);
+                          }
+                        }}
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </li>
           );
         })}

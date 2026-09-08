@@ -241,15 +241,30 @@ export function geometriaRecorte(
   const largura = ehFuro ? (recorte.diametro ?? 35) : recorte.largura;
   const prof = ehFuro ? (recorte.diametro ?? 35) : recorte.profundidade;
 
-  // POSIÇÃO: arredonda para mm inteiro (a serra não corta em 0,5 mm). O "fim" do
-  // recorte é derivado de início + largura, então a largura declarada é preservada.
+  /*
+   * POSIÇÃO: arredonda para mm inteiro (a serra não corta em 0,5 mm) E
+   * GRAMPEIA dentro do trecho — sem isso, um `distanciaInicio`/`recuoFrontal`
+   * salvo antes de o trecho encolher (ex.: vendedor diminui o comprimento
+   * pelo slider DEPOIS de posicionar a cuba perto da ponta) fazia o recorte
+   * renderizar fora da peça, no SVG e no 3D, sem aviso nenhum — o buraco do
+   * Three.js Shape saía do polígono. `RecorteEditor`/`PositionRuler` já
+   * grampeavam isso só pra exibição do slider; aqui grampeia na FONTE, então
+   * todo consumidor (2D, 3D, orçamento) fica protegido igual.
+   * Quando o recorte é maior que o espaço (não cabe de jeito nenhum), o
+   * início fica em 0 — a largura/profundidade continuam exatas (não
+   * encolhe o recorte escondido), então o excesso aparece visualmente pra
+   * fora da peça de propósito: é um aviso visual de que não cabe, não um
+   * bug a esconder.
+   */
+  const maxAlong = Math.max(trecho.comprimento - largura, 0);
   const along = Math.round(
     recorte.posicao.centralizada
-      ? (trecho.comprimento - largura) / 2
-      : recorte.posicao.distanciaInicio,
+      ? maxAlong / 2
+      : Math.min(Math.max(recorte.posicao.distanciaInicio, 0), maxAlong),
   );
+  const maxRecuo = Math.max(trecho.profundidade - prof, 0);
   const recuo = Math.round(
-    recorte.posicao.recuoFrontal ?? (trecho.profundidade - prof) / 2,
+    Math.min(Math.max(recorte.posicao.recuoFrontal ?? maxRecuo / 2, 0), maxRecuo),
   );
 
   const base: Ponto = {
@@ -271,4 +286,40 @@ export function geometriaRecorte(
     raio: ehFuro ? largura / 2 : undefined,
     recorte,
   };
+}
+
+/**
+ * true quando o recorte CABE no trecho a que pertence (dimensão declarada
+ * não maior que o espaço disponível). Não confundir com "a posição é
+ * válida" — a posição sempre é grampeada por `geometriaRecorte`; isto aqui
+ * é sobre a DIMENSÃO ser fisicamente possível ali. Usado pelo indicador de
+ * progresso (EtapaRail) pra decidir se a etapa "Recortes" está de fato
+ * pronta, não só "visitada".
+ */
+export function recorteCabeNoTrecho(bancada: Bancada, recorte: Recorte): boolean {
+  const i = Math.min(recorte.posicao.trecho, bancada.trechos.length - 1);
+  const trecho = bancada.trechos[i];
+  if (!trecho) return false;
+  const ehFuro = recorte.tipo === "furo_torneira" || recorte.tipo === "furo_dosador";
+  const largura = ehFuro ? (recorte.diametro ?? 0) : recorte.largura;
+  const prof = ehFuro ? (recorte.diametro ?? 0) : recorte.profundidade;
+  return (
+    Number.isFinite(largura) &&
+    Number.isFinite(prof) &&
+    largura > 0 &&
+    prof > 0 &&
+    largura <= trecho.comprimento &&
+    prof <= trecho.profundidade
+  );
+}
+
+/** true quando todo trecho tem comprimento/profundidade positivos e finitos. */
+export function medidasValidas(bancada: Bancada): boolean {
+  return bancada.trechos.every(
+    (t) =>
+      Number.isFinite(t.comprimento) &&
+      Number.isFinite(t.profundidade) &&
+      t.comprimento > 0 &&
+      t.profundidade > 0,
+  );
 }

@@ -14,7 +14,8 @@ import { AMBIENTE_LABEL, FORMATO_LABEL } from "@/domain/presets";
 import type { Lado } from "@/domain/project";
 import { calcularOrcamento, rotuloTotal } from "@/domain/quote";
 import { mmParaMetrosLabel } from "@/domain/units";
-import { useProjectStore, type Aba } from "@/store/projectStore";
+import { useProjectStore } from "@/store/projectStore";
+import type { EtapaId } from "./EtapaRail";
 import { ACABAMENTOS, rotulo } from "./paineis";
 
 const LADO_LABEL: Record<Lado, string> = {
@@ -29,7 +30,7 @@ export function Revisao({
   onEditar,
 }: {
   onFechar: () => void;
-  onEditar: (aba: Aba) => void;
+  onEditar: (etapa: EtapaId) => void;
 }) {
   const projeto = useProjectStore((s) => s.projeto);
   const tabela = useProjectStore((s) => s.tabela);
@@ -66,11 +67,11 @@ export function Revisao({
         <p className="revisao__sub">Confira antes de apresentar o orçamento ao cliente.</p>
 
         <div className="revisao__corpo">
-          <button className="revisao__linha" onClick={() => onEditar("ambientes")}>
+          <button className="revisao__linha" onClick={() => onEditar("ambiente")}>
             <span>Ambiente</span>
             <strong>{AMBIENTE_LABEL[projeto.ambiente]}</strong>
           </button>
-          <button className="revisao__linha" onClick={() => onEditar("medidas")}>
+          <button className="revisao__linha" onClick={() => onEditar("formato")}>
             <span>Formato</span>
             <strong>{FORMATO_LABEL[projeto.bancada.formato]}</strong>
           </button>
@@ -78,23 +79,23 @@ export function Revisao({
             <span>Medidas</span>
             <strong>{medidas} m · prof. {prof} m</strong>
           </button>
-          <button className="revisao__linha" onClick={() => onEditar("componentes")}>
+          <button className="revisao__linha" onClick={() => onEditar("recortes")}>
             <span>Recortes</span>
             <strong>{recortesTxt || "Nenhum"}</strong>
           </button>
-          <button className="revisao__linha" onClick={() => onEditar("componentes")}>
+          <button className="revisao__linha" onClick={() => onEditar("acabamentos")}>
             <span>Acabamento</span>
             <strong>{acabamento}</strong>
           </button>
-          <button className="revisao__linha" onClick={() => onEditar("componentes")}>
+          <button className="revisao__linha" onClick={() => onEditar("acabamentos")}>
             <span>Frontão</span>
             <strong>{frontoes.length ? frontoes.join(", ") : "Nenhum"}</strong>
           </button>
-          <button className="revisao__linha" onClick={() => onEditar("componentes")}>
+          <button className="revisao__linha" onClick={() => onEditar("acabamentos")}>
             <span>Saia / painel</span>
             <strong>{saias.length ? saias.join(", ") : "Nenhuma"}</strong>
           </button>
-          <button className="revisao__linha" onClick={() => onEditar("pedras")}>
+          <button className="revisao__linha" onClick={() => onEditar("pedra")}>
             <span>Pedra</span>
             <strong>{mat?.nome ?? "Não selecionada"}</strong>
           </button>
@@ -118,7 +119,7 @@ export function Revisao({
               Gerar orçamento
             </Link>
           ) : (
-            <button className="btn-primario" onClick={() => onEditar("pedras")}>
+            <button className="btn-primario" onClick={() => onEditar("pedra")}>
               Escolher a pedra
             </button>
           )}

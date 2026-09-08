@@ -14,7 +14,11 @@ export type Ambiente =
   | "banheiro"
   | "ilha"
   | "balcao"
-  | "lavanderia";
+  | "lavanderia"
+  | "churrasqueira"
+  | "nicho"
+  | "tanque"
+  | "aparador";
 
 /** Um segmento reto da bancada. Bancada de marmoraria é retilínea, 90°. */
 export interface Trecho {

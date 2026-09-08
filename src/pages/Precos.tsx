@@ -1,9 +1,14 @@
 /**
- * Tela de admin da tabela de preços (especificação, seção 9).
+ * Tela de admin da tabela de preços (especificação, seção 9) + backup.
  * Tudo editável pelo dono, sem mexer em código. Grava no banco local.
+ *
+ * Backup (.json) mora aqui, não na tela de Projetos: é manutenção/
+ * segurança, não faz parte do fluxo diário do vendedor.
  */
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { TabelaPrecos } from "@/domain/tabelaPrecos";
+import { exportarTodos, importarBackup } from "@/lib/backup";
 import { useProjectStore } from "@/store/projectStore";
 
 function NumRow({
@@ -55,6 +60,33 @@ function TxtRow({
 export function Precos() {
   const tabela = useProjectStore((s) => s.tabela);
   const setTabela = useProjectStore((s) => s.setTabela);
+  const lista = useProjectStore((s) => s.lista);
+  const recarregarLista = useProjectStore((s) => s.recarregarLista);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const inputArquivo = useRef<HTMLInputElement>(null);
+
+  const naoExportados = lista.filter((p) => !p.exportadoEm).length;
+
+  const exportarTudo = async () => {
+    const n = await exportarTodos();
+    await recarregarLista();
+    setAviso(n ? `${n} projeto(s) exportado(s).` : "Nada para exportar.");
+  };
+
+  const importar = async (arquivo: File) => {
+    try {
+      const res = await importarBackup(await arquivo.text());
+      await recarregarLista();
+      const partes = [
+        res.novos && `${res.novos} novo(s)`,
+        res.atualizados && `${res.atualizados} atualizado(s)`,
+        res.ignorados.length && `${res.ignorados.length} ignorado(s)`,
+      ].filter(Boolean);
+      setAviso(`Importação: ${partes.join(", ") || "nada a importar"}.`);
+    } catch (e) {
+      setAviso(e instanceof Error ? e.message : "Falha ao importar.");
+    }
+  };
 
   const patchMapa = (
     chave: "acabamentoBorda" | "recorte" | "complemento",
@@ -208,6 +240,38 @@ export function Precos() {
               </span>
             </div>
           ))}
+        </section>
+
+        <section className="preco-card">
+          <h2>Backup</h2>
+          <p className="preco-card__nota">
+            Guarda os projetos num arquivo .json (contém dados do cliente — guarde em local
+            seguro). {naoExportados > 0 && `${naoExportados} projeto(s) sem cópia.`}
+          </p>
+          <input
+            ref={inputArquivo}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void importar(f);
+              e.target.value = "";
+            }}
+          />
+          <div className="preco-backup__acoes">
+            <button className="btn-ghost" onClick={() => inputArquivo.current?.click()}>
+              Importar backup
+            </button>
+            <button className="btn-ghost" onClick={() => void exportarTudo()}>
+              Exportar tudo
+            </button>
+          </div>
+          {aviso && (
+            <p className="preco-backup__aviso" onClick={() => setAviso(null)}>
+              {aviso}
+            </p>
+          )}
         </section>
 
         <section className="preco-card">
