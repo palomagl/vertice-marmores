@@ -3,22 +3,19 @@
  * comprimento da peça. Abas por tipo (Área molhada / Cuba / Cooktop / Furo).
  * Inspirado no simuladormarmoraria.com.br.
  *
- * LIMITAÇÃO CONHECIDA (documentada, não escondida): a régua só entende UM
- * trecho por vez — ela é uma linha reta escalada pro comprimento de um único
- * trecho, então não dá pra desenhar corretamente uma peça em L/P/U inteira
- * numa régua só (os trechos formam ângulo de 90°, não ficam na mesma reta).
- * Em vez de fingir que funciona pra peça toda (o bug antigo: a régua sempre
- * usava a escala do trecho 0, então um recorte no trecho B/C aparecia na
- * posição errada quando os trechos tinham comprimentos diferentes), agora:
- *   - o trecho ativo fica EXPLÍCITO (seletor A/B/C quando há mais de um);
- *   - a régua mostra e escala só os recortes DAQUELE trecho;
- *   - recortes de outros trechos ficam ocultos aqui (mas continuam editáveis
- *     pelos campos numéricos do `RecorteEditor`, que sempre funcionam certo
- *     pra qualquer trecho).
- * Reescrever pra desenhar o contorno inteiro (L/P/U dobrado) é trabalho de
- * outra rodada — arriscado demais pra fazer com pressa.
+ * Em L/P/U os trechos formam ângulo de 90° entre si — não dá pra desenhar
+ * tudo numa única linha reta sem reescrever isso como um desenho dobrado
+ * (fora de escopo, arriscado demais pra fazer com pressa). A solução aqui é
+ * mais simples e ainda honesta: em vez de esconder os outros trechos atrás
+ * de um seletor (como era antes — só um trecho visível por vez, o vendedor
+ * precisava lembrar de trocar), cada trecho que TEM recorte ganha sua
+ * própria régua, todas empilhadas e visíveis ao mesmo tempo, cada uma na
+ * escala certa do seu próprio comprimento. Trecho sem recorte nenhum não
+ * aparece aqui (nada pra arrastar) — mas continua editável pelos campos
+ * numéricos do `RecorteEditor`, que sempre funcionam certo pra qualquer
+ * trecho.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Recorte } from "@/domain/project";
 import { mmParaMetrosLabel } from "@/domain/units";
 import { useProjectStore } from "@/store/projectStore";
@@ -36,29 +33,63 @@ export function PositionRuler() {
   const recortes = useProjectStore((s) => s.projeto.recortes);
   const trechos = useProjectStore((s) => s.projeto.bancada.trechos);
   const updateRecorte = useProjectStore((s) => s.updateRecorte);
+
+  const grupos = useMemo(() => {
+    return trechos
+      .map((t, i) => ({
+        indice: i,
+        comprimento: t.comprimento,
+        recortes: recortes.filter(
+          (r) => Math.min(r.posicao.trecho, trechos.length - 1) === i,
+        ),
+      }))
+      .filter((g) => g.recortes.length > 0);
+  }, [recortes, trechos]);
+
+  if (grupos.length === 0) return null;
+
+  return (
+    <div className="regua-lista">
+      {grupos.map((g) => (
+        <ReguaDoTrecho
+          key={g.indice}
+          rotulo={trechos.length > 1 ? (NOME_TRECHO[g.indice] ?? String(g.indice + 1)) : null}
+          comprimento={g.comprimento}
+          recortes={g.recortes}
+          onMover={(id, distanciaInicio) =>
+            updateRecorte(id, {
+              posicao: {
+                ...g.recortes.find((r) => r.id === id)!.posicao,
+                centralizada: false,
+                distanciaInicio,
+              },
+            })
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Uma régua completa (abas por tipo + trilho arrastável) pra UM trecho. */
+function ReguaDoTrecho({
+  rotulo,
+  comprimento,
+  recortes,
+  onMover,
+}: {
+  /** "A"/"B"/"C" — null quando a peça só tem 1 trecho (não precisa rotular) */
+  rotulo: string | null;
+  comprimento: number;
+  recortes: Recorte[];
+  onMover: (id: string, distanciaInicioMm: number) => void;
+}) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<string | null>(null);
-  const [trechoAtivo, setTrechoAtivo] = useState(0);
 
-  // se o formato mudou e o trecho ativo deixou de existir, volta pro 0
-  useEffect(() => {
-    if (trechoAtivo >= trechos.length) setTrechoAtivo(0);
-  }, [trechos.length, trechoAtivo]);
-
-  const doTrecho = useMemo(
-    () => recortes.filter((r) => Math.min(r.posicao.trecho, trechos.length - 1) === trechoAtivo),
-    [recortes, trechos.length, trechoAtivo],
-  );
-  const tabs = useMemo(
-    () => [...new Set(doTrecho.map((r) => grupo(r.tipo)))],
-    [doTrecho],
-  );
-  const tabAtiva = tab && tabs.includes(tab) ? tab : tabs[0] ?? null;
-  const visiveis = doTrecho.filter((r) => grupo(r.tipo) === tabAtiva);
-
-  if (recortes.length === 0) return null;
-
-  const comprimento = trechos[trechoAtivo]?.comprimento ?? 2000;
+  const tabs = useMemo(() => [...new Set(recortes.map((r) => grupo(r.tipo)))], [recortes]);
+  const tabAtiva = tab && tabs.includes(tab) ? tab : (tabs[0] ?? null);
+  const visiveis = recortes.filter((r) => grupo(r.tipo) === tabAtiva);
 
   const posInfo = (r: Recorte) => {
     const larg = r.diametro ?? r.largura;
@@ -79,9 +110,7 @@ export function PositionRuler() {
       const frac = (clientX - rect.left) / rect.width;
       const centroMm = frac * comprimento;
       const ini = Math.round(Math.min(Math.max(centroMm - larg / 2, 0), maxIni) / 5) * 5;
-      updateRecorte(r.id, {
-        posicao: { ...r.posicao, centralizada: false, distanciaInicio: ini },
-      });
+      onMover(r.id, ini);
     };
     mover(e.clientX);
     const onMove = (ev: PointerEvent) => mover(ev.clientX);
@@ -96,18 +125,10 @@ export function PositionRuler() {
   return (
     <div className="regua">
       <div className="regua__topo">
-        {trechos.length > 1 && (
-          <div className="regua__trechos">
+        {rotulo && (
+          <div className="regua__trecho-rotulo">
             <span>Trecho</span>
-            {trechos.map((_, i) => (
-              <button
-                key={i}
-                className={i === trechoAtivo ? "is-active" : ""}
-                onClick={() => setTrechoAtivo(i)}
-              >
-                {NOME_TRECHO[i] ?? i + 1}
-              </button>
-            ))}
+            <strong>{rotulo}</strong>
           </div>
         )}
         {tabs.length > 1 && (
@@ -124,36 +145,29 @@ export function PositionRuler() {
           </div>
         )}
       </div>
-      {doTrecho.length === 0 ? (
-        <p className="regua__vazio">
-          Nenhum recorte no trecho {NOME_TRECHO[trechoAtivo] ?? trechoAtivo + 1} — troque de
-          trecho acima pra ver/mover os recortes dele.
-        </p>
-      ) : (
-        <div className="regua__linha">
-          <span className="regua__cota">0,00 m</span>
-          <div className="regua__track" ref={trackRef}>
-            {visiveis.map((r) => {
-              const { larg, ini } = posInfo(r);
-              const left = (ini / comprimento) * 100;
-              const width = (larg / comprimento) * 100;
-              const centro = ini + larg / 2;
-              return (
-                <div
-                  key={r.id}
-                  className="regua__pill"
-                  style={{ left: `${left}%`, width: `${width}%` }}
-                  onPointerDown={(e) => arrastar(r, e)}
-                  title={`${grupo(r.tipo)} · ${mmParaMetrosLabel(centro)} m`}
-                >
-                  <span className="regua__handle" />
-                </div>
-              );
-            })}
-          </div>
-          <span className="regua__cota">{mmParaMetrosLabel(comprimento)} m</span>
+      <div className="regua__linha">
+        <span className="regua__cota">0,00 m</span>
+        <div className="regua__track" ref={trackRef}>
+          {visiveis.map((r) => {
+            const { larg, ini } = posInfo(r);
+            const left = (ini / comprimento) * 100;
+            const width = (larg / comprimento) * 100;
+            const centro = ini + larg / 2;
+            return (
+              <div
+                key={r.id}
+                className="regua__pill"
+                style={{ left: `${left}%`, width: `${width}%` }}
+                onPointerDown={(e) => arrastar(r, e)}
+                title={`${grupo(r.tipo)} · ${mmParaMetrosLabel(centro)} m`}
+              >
+                <span className="regua__handle" />
+              </div>
+            );
+          })}
         </div>
-      )}
+        <span className="regua__cota">{mmParaMetrosLabel(comprimento)} m</span>
+      </div>
     </div>
   );
 }
