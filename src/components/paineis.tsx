@@ -27,6 +27,28 @@ export const ACABAMENTOS: { value: TipoAcabamentoBorda; label: string }[] = [
   { value: "meia_esquadria", label: "Meia-esquadria" },
 ];
 
+/**
+ * Perfil da borda em corte, só ilustrativo no chip de seleção — confirmado
+ * que acabamento de borda é comercial/documental, não visual na peça (não
+ * muda geometry.ts/Drawing2D/Scene3D). Desenho esquemático, não é o perfil
+ * exato de fábrica.
+ */
+const PERFIL_BORDA: Record<TipoAcabamentoBorda, string> = {
+  reto: "M3,3 H17 V17 H3 Z",
+  boleado: "M3,3 H12 Q17,3 17,8 V17 H3 Z",
+  meia_cana: "M3,3 H12 Q12,8 17,8 V17 H3 Z",
+  bisote: "M3,3 H12 L17,8 V17 H3 Z",
+  meia_esquadria: "M3,3 H12 V6 H14 V8 H17 V17 H3 Z",
+};
+
+function IconBorda({ tipo }: { tipo: TipoAcabamentoBorda }) {
+  return (
+    <svg className="chip__icone" width="16" height="16" viewBox="0 0 20 20" aria-hidden="true">
+      <path d={PERFIL_BORDA[tipo]} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 const LADOS_FRONTAO: { lado: Lado; label: string }[] = [
   { lado: "traseiro", label: "Traseiro" },
   { lado: "esquerdo", label: "Esquerdo" },
@@ -288,6 +310,7 @@ export function PainelAcabamentos() {
                 setAcabamento({ tipo: o.value, precoMetroLinear: tabela.acabamentoBorda[o.value] })
               }
             >
+              <IconBorda tipo={o.value} />
               {o.label}
             </button>
           ))}
