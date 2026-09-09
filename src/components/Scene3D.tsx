@@ -13,7 +13,7 @@ import {
   geometriaRecorte,
   segmentosDoComplemento,
 } from "@/domain/geometry";
-import type { Projeto } from "@/domain/project";
+import type { Lado, Projeto } from "@/domain/project";
 import { desenharPedra, type ParamsPedra } from "@/domain/stoneTexture";
 
 interface Props {
@@ -189,6 +189,43 @@ function useComplementos(projeto: Projeto): Caixa[] {
   }, [projeto]);
 }
 
+/**
+ * Tampa horizontal automática — NÃO é um tipo de complemento novo no modelo
+ * (nada em project.ts/quote.ts muda, zero impacto em preço/documentos): é
+ * inferida puramente da geometria. Quando uma bancada linear de 1 trecho já
+ * tem frontão nos 3 lados fechados (traseiro + esquerdo + direito) na MESMA
+ * altura — ou seja, já é uma caixa de 3 paredes, caso do Nicho — faz sentido
+ * visual fechar por cima. Se um dia outro ambiente ganhar essa mesma
+ * combinação de frontões, ganha a tampa de graça, sem precisar mexer aqui.
+ */
+function useTopoAutomatico(projeto: Projeto): Caixa[] {
+  return useMemo(() => {
+    const { bancada, complementos } = projeto;
+    if (bancada.trechos.length !== 1) return [];
+    const t = bancada.trechos[0];
+    const lados: Lado[] = ["traseiro", "esquerdo", "direito"];
+    const paredes = lados.map((lado) =>
+      complementos.find((c) => c.tipo === "frontao" && c.lado === lado && c.altura > 0),
+    );
+    if (paredes.some((c) => !c)) return [];
+    const alturas = new Set(paredes.map((c) => c!.altura));
+    if (alturas.size > 1) return []; // alturas diferentes não fecham uma caixa reta
+
+    const esp = bancada.espessura / MM;
+    const espTopo = Math.max(esp, 0.018);
+    const alt = paredes[0]!.altura / MM;
+    const worldY = esp + alt + espTopo / 2;
+    return [
+      {
+        key: "topo-automatico",
+        pos: [t.comprimento / (2 * MM), worldY, -(t.profundidade / (2 * MM))],
+        rotY: 0,
+        args: [t.comprimento / MM, espTopo, t.profundidade / MM],
+      },
+    ];
+  }, [projeto]);
+}
+
 function Bancada({
   projeto,
   params,
@@ -200,6 +237,7 @@ function Bancada({
 }) {
   const slab = useSlab(projeto);
   const comps = useComplementos(projeto);
+  const topo = useTopoAutomatico(projeto);
   const tex = usePedraMap(params, materialId, slab.larguraM, slab.alturaM);
 
   return (
@@ -208,7 +246,7 @@ function Bancada({
         <mesh geometry={slab.geo} castShadow receiveShadow>
           <meshStandardMaterial map={tex} color="#ffffff" roughness={0.4} metalness={0.02} />
         </mesh>
-        {comps.map((c) => (
+        {[...comps, ...topo].map((c) => (
           <mesh key={c.key} position={c.pos} rotation={[0, c.rotY, 0]} castShadow receiveShadow>
             <boxGeometry args={c.args} />
             <meshStandardMaterial map={tex} color="#ffffff" roughness={0.45} metalness={0.02} />
