@@ -113,6 +113,13 @@ interface PresetAmbiente {
    * verdade (pia, gourmet...), onde faz sentido virar L/P/U.
    */
   formatoFixo?: boolean;
+  /**
+   * espessura do bloco (mm), se diferente do padrão de bancada (20/30mm) —
+   * o seletor da etapa Medidas só tem essas duas opções, mas um tanque
+   * esculpido é bem mais grosso (15–20cm). Ausente = usa a espessura
+   * corrente do projeto (comportamento de sempre).
+   */
+  espessuraPadrao?: number;
   /** todas as bordas acabadas (ilha, balcão) */
   todasBordasAcabadas: boolean;
   /** lados que nascem com frontão */
@@ -298,15 +305,18 @@ export const PRESETS: Record<Ambiente, PresetAmbiente> = {
    * Tanque: largura 100–120cm (meio: 110cm), profundidade 50–60cm (meio:
    * 55cm), cuba 45–55cm de largura × 35–45cm de profundidade (meio:
    * 50×40cm), cantos levemente arredondados. "Altura da peça 15–20cm" é a
-   * ESPESSURA do bloco (não o campo `espessura` do app, que só aceita
-   * 2/3cm hoje — decisão de não mexer nesse seletor pra um ambiente só,
-   * fica só na descrição pro vendedor saber que é peça mais grossa).
+   * ESPESSURA do bloco — bem mais grosso que bancada comum (2/3cm). O
+   * seletor da etapa Medidas normalmente só tem 20/30mm; `espessuraPadrao`
+   * faz esse valor (meio da faixa: 18cm) aparecer como opção só quando o
+   * ambiente é Tanque (ver PainelPeca.tsx) — as outras bancadas continuam
+   * só com 2cm/3cm, sem poluir a tela à toa.
    */
   tanque: {
     formato: "linear",
     formatoFixo: true, // peça avulsa de formato único
     profundidade: 550,
     comprimentoPadrao: 1100,
+    espessuraPadrao: 180,
     todasBordasAcabadas: false,
     frontaoLados: ["traseiro"],
     frontaoAltura: DEFAULTS.frontao,
@@ -322,15 +332,15 @@ export const PRESETS: Record<Ambiente, PresetAmbiente> = {
       },
     ],
     descricao:
-      "Tanque de lavar roupa avulso, cuba esculpida ~50×40cm — bloco costuma ser mais espesso (15–20cm) que uma bancada comum (2–3cm); ajuste a espessura na etapa Medidas se for cotar assim.",
+      "Tanque de lavar roupa avulso, cuba esculpida ~50×40cm — bloco monolítico, bem mais espesso (~18cm) que uma bancada comum.",
   },
   /*
    * Aparador: medida equilibrada sugerida 110×40×80cm, tampo 3cm. A altura
    * (80cm) é bem menor que os 90cm padrão de bancada de cozinha — por isso
    * usa `alturaInstalacaoPadrao`, senão as laterais até o piso (saia)
-   * sairiam 10cm mais altas que o desenho real. "Tampo 3cm" = espessura,
-   * mesma ressalva do tanque: o seletor do app é 2/3cm, então dá pra
-   * cotar certo trocando pra 3cm na etapa Medidas.
+   * sairiam 10cm mais altas que o desenho real. "Tampo 3cm" já é uma das
+   * duas opções normais do seletor (20/30mm), então basta `espessuraPadrao`
+   * apontar pra ela — nasce com 3cm marcado, sem precisar de opção extra.
    */
   aparador: {
     formato: "linear",
@@ -338,13 +348,14 @@ export const PRESETS: Record<Ambiente, PresetAmbiente> = {
     profundidade: 400,
     comprimentoPadrao: 1100,
     alturaInstalacaoPadrao: 800,
+    espessuraPadrao: 30,
     todasBordasAcabadas: true,
     frontaoLados: [],
     frontaoAltura: DEFAULTS.frontao,
     saiaLados: ["esquerdo", "direito"],
     saiaAltura: "piso",
     recortes: [],
-    descricao: "Aparador/console — tampo 110×40cm a 80cm do chão, laterais em pedra até o piso, sem cuba.",
+    descricao: "Aparador/console — tampo 110×40cm (3cm de espessura) a 80cm do chão, laterais em pedra até o piso.",
   },
 };
 
@@ -436,6 +447,8 @@ export function montarAmbiente(
   recortes: Recorte[];
   /** altura resolvida (== alturaInstalacao recebida, a menos que o preset sobrescreva) */
   alturaInstalacao: number;
+  /** espessura resolvida (== espessura recebida, a menos que o preset sobrescreva) */
+  espessura: number;
 } {
   const preset = PRESETS[ambiente];
   const trechos = trechosPadrao(preset.formato, preset.profundidade);
@@ -443,10 +456,11 @@ export function montarAmbiente(
     trechos[0] = { ...trechos[0], comprimento: preset.comprimentoPadrao };
   }
   const alturaResolvida = preset.alturaInstalacaoPadrao ?? alturaInstalacao;
+  const espessuraResolvida = preset.espessuraPadrao ?? espessura;
 
   const alturaSaia =
     preset.saiaAltura === "piso"
-      ? Math.max(alturaResolvida - espessura, 300)
+      ? Math.max(alturaResolvida - espessuraResolvida, 300)
       : preset.saiaAltura;
 
   const complementos: Complemento[] = [
@@ -482,16 +496,22 @@ export function montarAmbiente(
     },
   }));
 
-  return { formato: preset.formato, trechos, complementos, recortes, alturaInstalacao: alturaResolvida };
+  return {
+    formato: preset.formato,
+    trechos,
+    complementos,
+    recortes,
+    alturaInstalacao: alturaResolvida,
+    espessura: espessuraResolvida,
+  };
 }
 
 /** Cria um Projeto em branco já com os defaults do ambiente escolhido. */
 export function projetoNovo(ambiente: Ambiente = "pia"): Projeto {
   const agora = new Date().toISOString();
-  const espessura = DEFAULTS.espessura;
-  const { formato, trechos, complementos, recortes, alturaInstalacao } = montarAmbiente(
+  const { formato, trechos, complementos, recortes, alturaInstalacao, espessura } = montarAmbiente(
     ambiente,
-    espessura,
+    DEFAULTS.espessura,
     DEFAULTS.alturaInstalacao,
   );
   return {

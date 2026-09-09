@@ -118,12 +118,23 @@ describe("4 ambientes novos — churrasqueira, nicho, tanque, aparador", () => {
     expect(nicho.trechos[0].comprimento).not.toBe(2000);
   });
 
-  it("aparador usa alturaInstalacaoPadrao (80cm, não os 90cm padrão de bancada de cozinha)", () => {
-    const aparador = montarAmbiente("aparador", 20, 900); // 900 = altura corrente do projeto, deve ser sobrescrita
+  it("aparador usa alturaInstalacaoPadrao (80cm, não os 90cm padrão de bancada de cozinha) e espessuraPadrao (3cm)", () => {
+    const aparador = montarAmbiente("aparador", 20, 900); // 20/900 = valores correntes do projeto, devem ser sobrescritos
     expect(aparador.alturaInstalacao).toBe(800);
-    // a saia até o piso usa a altura RESOLVIDA (800), não a recebida (900)
+    expect(aparador.espessura).toBe(30);
+    // a saia até o piso usa altura E espessura RESOLVIDAS (800/30), não as recebidas (900/20)
     const saia = aparador.complementos.find((c) => c.tipo === "saia");
-    expect(saia?.altura).toBe(800 - 20); // alturaInstalacao - espessura
+    expect(saia?.altura).toBe(800 - 30);
+  });
+
+  it("tanque usa espessuraPadrao (18cm — bloco monolítico, bem mais grosso que bancada comum)", () => {
+    const tanque = montarAmbiente("tanque", 20, 900);
+    expect(tanque.espessura).toBe(180);
+  });
+
+  it("ambientes sem espessuraPadrao continuam usando a espessura corrente do projeto (comportamento de sempre)", () => {
+    const pia = montarAmbiente("pia", 30, 900); // vendedor já tinha escolhido 3cm antes de trocar de ambiente
+    expect(pia.espessura).toBe(30);
   });
 
   it("ambientes sem alturaInstalacaoPadrao continuam usando a altura corrente do projeto (comportamento de sempre)", () => {

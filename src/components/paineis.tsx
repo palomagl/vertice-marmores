@@ -42,11 +42,22 @@ const TODOS_LADOS: Lado[] = ["frontal", "traseiro", "esquerdo", "direito"];
 
 // ===================== Peça (espessura + altura) =====================
 
+const ESPESSURAS_PADRAO = [20, 30];
+
 /** Vive dentro da etapa "Medidas" — são medidas também, não recortes. */
 export function PainelPeca() {
   const bancada = useProjectStore((s) => s.projeto.bancada);
   const setEspessura = useProjectStore((s) => s.setEspessura);
   const setAlturaInstalacao = useProjectStore((s) => s.setAlturaInstalacao);
+
+  // a maioria das peças só tem 2cm/3cm — mas um Tanque nasce com bloco de
+  // ~18cm (ver presets.ts, espessuraPadrao). Em vez de poluir TODA bancada
+  // com uma 3ª opção esquisita, ela só aparece quando o projeto JÁ está
+  // numa espessura fora do padrão (o ambiente aplicou, ou o vendedor digitou
+  // outra coisa) — pia/gourmet/etc. nunca veem isso.
+  const opcoesEspessura = ESPESSURAS_PADRAO.includes(bancada.espessura)
+    ? ESPESSURAS_PADRAO
+    : [...ESPESSURAS_PADRAO, bancada.espessura].sort((a, b) => a - b);
 
   return (
     <section className="painel-l__grupo">
@@ -55,7 +66,7 @@ export function PainelPeca() {
         <div className="campo">
           <span className="campo__label">Espessura</span>
           <div className="segmented">
-            {[20, 30].map((mm) => (
+            {opcoesEspessura.map((mm) => (
               <button
                 key={mm}
                 className={bancada.espessura === mm ? "is-active" : ""}

@@ -268,18 +268,16 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
 
     aplicarAmbiente: (ambiente) =>
       alterar((p) => {
-        const { formato, trechos, complementos, recortes, alturaInstalacao } = montarAmbiente(
-          ambiente,
-          p.bancada.espessura,
-          p.bancada.alturaInstalacao,
-        );
+        const { formato, trechos, complementos, recortes, alturaInstalacao, espessura } =
+          montarAmbiente(ambiente, p.bancada.espessura, p.bancada.alturaInstalacao);
         p.ambiente = ambiente;
         p.bancada.formato = formato;
         p.bancada.trechos = trechos;
-        // a maioria dos ambientes não sobrescreve a altura (usa a corrente,
-        // igual sempre foi); só ambientes com altura própria (ex.: aparador,
-        // ~80cm em vez dos 90cm de bancada de cozinha) mudam isso
+        // a maioria dos ambientes não sobrescreve altura/espessura (usa a
+        // corrente, igual sempre foi); só ambientes com peça própria (ex.:
+        // aparador ~80cm/3cm, tanque ~18cm de bloco) mudam isso
         p.bancada.alturaInstalacao = alturaInstalacao;
+        p.bancada.espessura = espessura;
         // troca frontão/saia/recortes pelos do ambiente; mantém extras que o vendedor tenha adicionado à mão
         p.complementos = [
           ...p.complementos.filter((c) => c.tipo !== "frontao" && c.tipo !== "saia"),
