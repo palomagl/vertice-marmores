@@ -51,9 +51,12 @@ export interface TabelaPrecos {
 export const TABELA_PADRAO: TabelaPrecos = {
   empresa: {
     nome: "DF Mármores e Granitos",
-    cnpj: "",
+    cnpj: "57.362.230/0001-18",
+    // TODO: telefone real da DF — a consulta de CNPJ só devolveu mascarado
+    // ("(49) 999****-****"), não dá pra usar. Preencher em /precos quando
+    // tiver o número completo.
     telefone: "",
-    cidade: "",
+    cidade: "Abelardo Luz, SC",
     prazoEntrega: "A combinar",
     formaPagamento: "A combinar",
     validadeDias: 15,
