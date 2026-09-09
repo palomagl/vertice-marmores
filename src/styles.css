@@ -149,6 +149,60 @@ input[type="range"]::-moz-range-thumb {
   line-height: 1;
 }
 
+/* switch neumórfico de tema — trilho "afundado" + bolinha "elevada", nos
+   tokens do app (funciona sozinho em claro e escuro). */
+.tema-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  min-height: 40px;
+}
+.tema-toggle__rotulo {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-dim);
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+.tema-toggle:not(.is-escuro) .tema-toggle__rotulo:first-child,
+.tema-toggle.is-escuro .tema-toggle__rotulo:last-child {
+  color: var(--acento);
+}
+.tema-toggle__trilho {
+  position: relative;
+  flex: 0 0 auto;
+  width: 56px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--borda);
+  box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.14), inset 0 -1px 1px rgba(255, 255, 255, 0.5);
+}
+.tema-toggle__bolinha {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.3), 0 0 0 1px var(--borda);
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease;
+}
+.tema-toggle.is-escuro .tema-toggle__bolinha {
+  transform: translateX(26px);
+  background: var(--acento);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.tema-toggle--compacta .tema-toggle__trilho { width: 40px; height: 22px; }
+.tema-toggle--compacta .tema-toggle__bolinha { width: 16px; height: 16px; top: 2px; left: 2px; }
+.tema-toggle--compacta.is-escuro .tema-toggle__bolinha { transform: translateX(18px); }
+
 /* fundo clicável invisível — fecha menu/popover no toque (sem depender de hover) */
 .click-backdrop {
   position: fixed;
@@ -451,7 +505,13 @@ input[type="range"]::-moz-range-thumb {
 .slider__ends em { font-style: normal; font-size: 10px; color: var(--texto-dim); white-space: nowrap; }
 .slider__ends input[type="range"] { flex: 1; }
 
-/* régua de posição — vive dentro da etapa "Recortes", não mais flutuando sobre o 3D */
+/*
+ * Régua de posição — vive dentro da etapa "Recortes". Uma peça em L/P/U com
+ * recorte em mais de um trecho mostra uma régua POR TRECHO, todas
+ * empilhadas e visíveis ao mesmo tempo (regua-lista) — nenhuma fica
+ * escondida atrás de um seletor.
+ */
+.regua-lista { display: flex; flex-direction: column; gap: 10px; }
 .regua {
   background: var(--surface-2);
   border: 1px solid var(--borda);
@@ -459,19 +519,17 @@ input[type="range"]::-moz-range-thumb {
   padding: 10px 12px 12px;
 }
 .regua__topo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 8px; }
-.regua__trechos { display: flex; align-items: center; gap: 6px; }
-.regua__trechos span { font-size: 11px; color: var(--texto-dim); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-.regua__trechos button {
-  background: var(--surface);
-  border: 1px solid var(--borda-forte);
-  border-radius: 999px;
-  padding: 5px 13px;
-  min-height: 32px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--texto-dim);
+.regua__trecho-rotulo { display: flex; align-items: center; gap: 6px; }
+.regua__trecho-rotulo span {
+  font-size: 11px; color: var(--texto-dim); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
 }
-.regua__trechos button.is-active { background: var(--acento); border-color: var(--acento); color: #fff; }
+.regua__trecho-rotulo strong {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--acento-claro); color: var(--acento);
+  font-size: 12px; font-weight: 800;
+}
 .regua__tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .regua__tabs button {
   background: transparent;
@@ -483,7 +541,6 @@ input[type="range"]::-moz-range-thumb {
   color: var(--texto-dim);
 }
 .regua__tabs button.is-active { background: var(--acento); color: #fff; }
-.regua__vazio { margin: 2px 0 0; font-size: 12px; color: var(--texto-dim); line-height: 1.5; }
 .regua__linha { display: flex; align-items: center; gap: 10px; }
 .regua__cota { font-size: 10px; color: var(--texto-dim); white-space: nowrap; }
 .regua__track {
@@ -1023,7 +1080,10 @@ input[type="range"]::-moz-range-thumb {
   color: var(--texto-dim); font-size: 13px; padding: 2px 4px; flex: 0 0 auto;
 }
 
-/* ação principal da tela — grande e sozinha, sem concorrência visual */
+/* ação principal + busca — empilhadas no celular; lado a lado no desktop
+   (ver @media no fim do arquivo — `display:contents` aqui não muda nada
+   sozinho, só existe pra virar `flex` sem afetar o layout mobile) */
+.tela__acoes-principais { display: contents; }
 .tela__novo {
   display: flex;
   width: 100%;
@@ -1031,7 +1091,6 @@ input[type="range"]::-moz-range-thumb {
   font-size: 16px;
   margin-bottom: 18px;
 }
-.tela__tema { flex: 0 0 auto; }
 
 .tag-sem-copia {
   display: block; font-style: normal; font-size: 10px; font-weight: 600;
@@ -1046,6 +1105,7 @@ input[type="range"]::-moz-range-thumb {
 .lista-projetos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .lista-projetos__vazio { color: var(--texto-dim); font-size: 13px; padding: 24px 4px; }
 .linha-projeto {
+  position: relative;
   display: flex; align-items: stretch; gap: 6px;
   background: var(--surface); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden;
 }
@@ -1163,5 +1223,52 @@ input[type="range"]::-moz-range-thumb {
     max-height: 74dvh;
     border-radius: 18px;
     margin-bottom: 4vh;
+  }
+}
+
+/*
+ * Tela de Projetos no desktop — antes era a mesma coluna estreita (880px)
+ * de qualquer tamanho de tela, sobrando parede vazia dos dois lados numa
+ * tela de 1440px+. Aqui: container mais largo, "Novo projeto" + busca lado
+ * a lado (em vez de empilhados ocupando 2 linhas à toa), e a lista vira
+ * grade de cards em vez de uma coluna única de linhas finas.
+ */
+@media (min-width: 900px) {
+  .tela { max-width: 1240px; padding: 40px 48px 60px; }
+  .tela__topo h1 { font-size: 24px; }
+
+  .tela__acoes-principais {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .tela__novo { width: auto; flex: 0 0 auto; margin-bottom: 0; white-space: nowrap; padding: 14px 26px; }
+  .tela__busca { flex: 1; margin-bottom: 0; }
+
+  .lista-projetos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+  }
+  .lista-projetos__vazio { grid-column: 1 / -1; }
+  .linha-projeto { flex-direction: column; align-items: stretch; }
+  .linha-projeto__abrir {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 18px;
+    min-height: 0;
+  }
+  .linha-projeto__total { text-align: left; }
+  .linha-projeto__menu-wrap { position: absolute; top: 10px; right: 10px; }
+  .linha-projeto__acao {
+    border-left: none;
+    background: var(--surface);
+    border: 1px solid var(--borda);
+    border-radius: 999px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    font-size: 15px;
   }
 }

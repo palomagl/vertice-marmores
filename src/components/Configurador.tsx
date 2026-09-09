@@ -35,6 +35,7 @@ import { PainelAcabamentos, PainelPeca, PainelPedras, PainelRecortes } from "./p
 import { PainelOrcamento } from "./PainelOrcamento";
 import { PositionRuler } from "./PositionRuler";
 import { Revisao } from "./Revisao";
+import { TemaToggle } from "./TemaToggle";
 
 const Scene3D = lazy(() =>
   import("./Scene3D").then((m) => ({ default: m.Scene3D })),
@@ -56,7 +57,6 @@ export function Configurador() {
   const apresentacao = useProjectStore((s) => s.apresentacao);
   const setApresentacao = useProjectStore((s) => s.setApresentacao);
   const tema = useProjectStore((s) => s.tema);
-  const alternarTema = useProjectStore((s) => s.alternarTema);
   const setNome = useProjectStore((s) => s.setNome);
   const recemCriado = useProjectStore((s) => s.recemCriado);
   const finalizarCriacao = useProjectStore((s) => s.finalizarCriacao);
@@ -248,13 +248,7 @@ export function Configurador() {
           >
             ↷
           </button>
-          <button
-            className="btn-ico"
-            onClick={alternarTema}
-            title={tema === "escuro" ? "Usar tema claro" : "Usar tema escuro"}
-          >
-            {tema === "escuro" ? "☀" : "☾"}
-          </button>
+          <TemaToggle compacta />
           <div className="simu__menu-wrap">
             <button className="btn-ico" onClick={() => setMenu((v) => !v)}>⋮</button>
             {menu && (

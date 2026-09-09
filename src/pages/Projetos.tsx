@@ -8,6 +8,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { InstalarBanner } from "@/components/InstalarBanner";
+import { TemaToggle } from "@/components/TemaToggle";
 import { AMBIENTE_LABEL, FORMATO_LABEL } from "@/domain/presets";
 import { calcularOrcamento, rotuloTotal } from "@/domain/quote";
 import { exportarProjetos } from "@/lib/backup";
@@ -20,8 +21,6 @@ export function Projetos() {
   const abrirProjeto = useProjectStore((s) => s.abrirProjeto);
   const excluirProjeto = useProjectStore((s) => s.excluirProjeto);
   const recarregarLista = useProjectStore((s) => s.recarregarLista);
-  const tema = useProjectStore((s) => s.tema);
-  const alternarTema = useProjectStore((s) => s.alternarTema);
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const [menuAberto, setMenuAberto] = useState<string | null>(null);
@@ -48,28 +47,27 @@ export function Projetos() {
       <header className="tela__topo">
         <div>
           <h1>Projetos</h1>
-          <p className="tela__sub">DF Mármores e Granitos</p>
+          <p className="tela__sub">
+            DF Mármores e Granitos
+            {lista.length > 0 && ` · ${lista.length} projeto${lista.length > 1 ? "s" : ""}`}
+          </p>
         </div>
-        <button
-          className="btn-ico tela__tema"
-          onClick={alternarTema}
-          title={tema === "escuro" ? "Usar tema claro" : "Usar tema escuro"}
-        >
-          {tema === "escuro" ? "☀" : "☾"}
-        </button>
+        <TemaToggle />
       </header>
 
-      {/* ação principal — a única coisa que precisa saltar aos olhos aqui */}
-      <button className="btn-primario tela__novo" onClick={iniciarNovoProjeto}>
-        + Novo projeto
-      </button>
-
-      <input
-        className="tela__busca"
-        placeholder="Buscar por cliente ou identificação do projeto"
-        value={busca}
-        onChange={(e) => setBusca(e.target.value)}
-      />
+      {/* ação principal — sempre a coisa mais óbvia da tela — e a busca lado
+          a lado no desktop, onde tem espaço de sobra (ver @media em styles.css) */}
+      <div className="tela__acoes-principais">
+        <button className="btn-primario tela__novo" onClick={iniciarNovoProjeto}>
+          + Novo projeto
+        </button>
+        <input
+          className="tela__busca"
+          placeholder="Buscar por cliente ou identificação do projeto"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+        />
+      </div>
 
       <ul className="lista-projetos">
         {filtrada.map((p) => {
