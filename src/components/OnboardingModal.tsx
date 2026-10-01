@@ -4,8 +4,9 @@
  * isso aqui é só o convite inicial.
  */
 import { useEffect, useState } from "react";
+import { CHAVES } from "@/lib/chaves";
 
-const CHAVE = "df-onboarding-visto";
+const CHAVE = CHAVES.onboardingVisto;
 
 export function OnboardingModal() {
   const [visivel, setVisivel] = useState(false);

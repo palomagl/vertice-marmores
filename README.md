@@ -1,6 +1,8 @@
 <div align="center">
 
-# DF Mármores — Projeto e Orçamento
+<img src="public/marca/logo.svg" alt="Vértice Mármores" width="340">
+
+# Projeto e Orçamento
 
 **Monte a bancada com o cliente, veja em 3D e feche o orçamento na hora.**
 
@@ -58,6 +60,12 @@ do cliente.
 
 Precisa de **Node 20+**.
 
+No Windows, o jeito mais rápido: dois cliques em **`rodar-local.bat`** — na
+primeira vez ele instala as dependências, depois abre o app no navegador em
+`http://localhost:5173`. Para parar, feche a janela preta.
+
+Pelo terminal:
+
 ```bash
 npm install
 npm run dev        # http://localhost:5173
@@ -106,12 +114,14 @@ src/
     AmbienteStrip.tsx faixa de ambientes
     PositionRuler.tsx régua de posição arrastável
     paineis.tsx       painel de características + catálogo de pedras
+    Logo.tsx          logotipo em SVG (segue o tema claro/escuro)
   pages/
-    Projetos.tsx      lista inicial (busca por cliente)
+    Projetos.tsx      página de entrada: projetos, busca, novo projeto
     Proposta.tsx      proposta comercial (impressão)
     OrdemServico.tsx  ordem de serviço da oficina
     Precos.tsx        admin da tabela de preços
 public/
+  marca/              logotipo (SVG e PNG, claro e negativo) + textura da capa
   ambientes/          fotos dos ambientes
   chapas/             fotos das chapas (ver LISTA.md)
 ```
@@ -132,5 +142,5 @@ aumentada e ajuste fino de escala 1:1 na tela.
 ---
 
 <div align="center">
-<sub>DF Mármores e Granitos</sub>
+<sub>Vértice Mármores</sub>
 </div>

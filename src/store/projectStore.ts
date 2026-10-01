@@ -21,6 +21,7 @@ import {
 } from "@/domain/presets";
 import { TABELA_PADRAO, type TabelaPrecos } from "@/domain/tabelaPrecos";
 import { proximoNumeroProposta } from "@/domain/numero";
+import { migrarBancoAntigo } from "@/lib/migracaoMarca";
 import { aplicarTema, lerTema, type Tema } from "@/lib/tema";
 import {
   carregarProjeto,
@@ -196,6 +197,8 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
     hidratar: async () => {
       if (hidratando || get().carregado) return;
       hidratando = true;
+      // projetos salvos com o nome antigo da empresa passam para o banco novo
+      await migrarBancoAntigo();
       const tabelaSalva = await carregarTabela();
       const id = idProjetoAtual.get();
       let projeto = id ? await carregarProjeto(id) : undefined;

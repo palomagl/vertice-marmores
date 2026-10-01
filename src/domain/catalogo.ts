@@ -1,5 +1,5 @@
 /**
- * Catálogo de pedras. Em produção vem do Supabase (estoque real da DF, com foto
+ * Catálogo de pedras. Em produção vem do Supabase (estoque real da Vértice, com foto
  * de cada chapa que está no galpão). As texturas abaixo são procedurais
  * (ver stoneTexture.ts) — placeholder até as fotos chegarem.
  *

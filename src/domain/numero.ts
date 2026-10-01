@@ -2,7 +2,9 @@
  * Numeração sequencial das propostas (especificação, seção 10): "2026-0142".
  * Contador local por ano. Em produção, mover para o banco (sequência atômica).
  */
-const CHAVE = "df-proposta-seq";
+import { CHAVES } from "@/lib/chaves";
+
+const CHAVE = CHAVES.sequenciaProposta;
 
 export function proximoNumeroProposta(): string {
   const ano = new Date().getFullYear();

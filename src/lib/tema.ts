@@ -2,9 +2,11 @@
  * Tema visual (claro / escuro). A escolha fica no localStorage e é aplicada no
  * elemento <html> via data-theme, então vale para todas as telas.
  */
+import { CHAVES } from "./chaves";
+
 export type Tema = "claro" | "escuro";
 
-const CHAVE = "df-tema";
+const CHAVE = CHAVES.tema;
 
 export function lerTema(): Tema {
   try {

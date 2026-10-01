@@ -17,6 +17,15 @@
   --alerta: #c0392b;
   --sombra: 0 8px 24px rgba(15, 23, 42, 0.1);
   --raio: 14px;
+
+  /* marca Vértice — ver components/Logo.tsx e public/marca/ */
+  --marca-nome: #17253b;
+  --marca-luz: #5c7699;
+  --marca-sombra: #17253b;
+  --marca-latao: #9a7442;
+  /* serifa da marca: Palatino no Windows/Mac/iOS (mesmo desenho do logotipo) */
+  --fonte-marca: "Palatino Linotype", Palatino, "Book Antiqua", "TeX Gyre Pagella",
+    "URW Palladio L", Georgia, serif;
   color-scheme: light;
 }
 
@@ -38,6 +47,11 @@
   --acento-2: #6ea0e6;
   --alerta: #e06b5c;
   --sombra: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  --marca-nome: #f3f1ec;
+  --marca-luz: #f3f1ec;
+  --marca-sombra: #9aa6b6;
+  --marca-latao: #c9a46a;
   color-scheme: dark;
 }
 
@@ -1066,103 +1080,275 @@ input[type="range"]::-moz-range-thumb {
 /* ===================== Telas (lista, admin) ===================== */
 .tela { max-width: 880px; margin: 0 auto; padding: 28px 20px 60px; }
 
+.tela__topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+.tela__topo h1 { font-size: 20px; margin: 10px 0 0; }
+.tela__nota { font-size: 12px; color: var(--texto-dim); }
+
+/* ===================== Logotipo (components/Logo.tsx) ===================== */
+.marca { display: block; overflow: visible; }
+.marca--compacto { aspect-ratio: 665.9 / 151.3; }
+.marca--simbolo { aspect-ratio: 54 / 50; }
+.marca__nome { fill: var(--marca-nome); }
+.marca__luz { fill: var(--marca-luz); }
+.marca__sombra { fill: var(--marca-sombra); }
+.marca__latao { fill: var(--marca-latao); }
+
+/* ícones de traço (página de entrada) */
+.icone {
+  width: 18px; height: 18px; flex: 0 0 auto;
+  fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.icone--cheio { fill: currentColor; stroke: none; }
+
+/* ===================== Página de entrada (pages/Projetos.tsx) =====================
+ * Barra da marca → capa em pedra (a única peça "forte" da tela) → busca →
+ * projetos. Cartões no celular/tablet, tabela a partir de 900px. */
+.inicio { min-height: 100%; }
+
+.inicio-topo {
+  position: sticky; top: 0; z-index: 8;
+  background: var(--vidro);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom: 1px solid var(--borda);
+}
+.inicio-topo__conteudo {
+  max-width: 1240px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px;
+  padding-top: max(10px, env(safe-area-inset-top));
+}
+.inicio-topo__logo { height: 38px; width: auto; min-width: 0; flex: 0 1 auto; }
+.inicio-topo__acoes { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+.inicio-topo__link {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-width: 42px; min-height: 42px; padding: 0 10px; border-radius: 10px;
+  color: var(--texto-dim); text-decoration: none; font-size: 13px; font-weight: 600;
+}
+.inicio-topo__link span { display: none; }
+.inicio-topo__link:hover { color: var(--texto); background: var(--hover); }
+.inicio-topo__link:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+
+.inicio-corpo { max-width: 1240px; margin: 0 auto; padding: 16px 16px 64px; }
+
 /* banner de instalação (fora do modo standalone) */
 .instalar-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  background: var(--acento-claro);
-  border: 1px solid var(--acento);
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--borda);
+  border-left: 3px solid var(--marca-latao);
   border-radius: 12px;
   padding: 12px 14px;
   margin-bottom: 16px;
 }
 .instalar-banner__texto { display: flex; flex-direction: column; gap: 3px; }
-.instalar-banner__texto strong { font-size: 13px; color: var(--acento); }
-.instalar-banner__texto span { font-size: 12px; color: var(--texto-dim); line-height: 1.4; }
+.instalar-banner__texto strong { font-size: 13px; color: var(--texto); }
+.instalar-banner__texto span { font-size: 12.5px; color: var(--texto-dim); line-height: 1.45; }
 .instalar-banner__x {
-  margin-left: auto; background: none; border: none;
-  color: var(--texto-dim); font-size: 13px; padding: 2px 4px; flex: 0 0 auto;
+  margin-left: auto; flex: 0 0 auto; background: none; border: none;
+  color: var(--texto-dim); font-size: 13px; min-width: 32px; min-height: 32px; border-radius: 8px;
 }
+.instalar-banner__x:hover { background: var(--hover); color: var(--texto); }
 
-/* ação principal + busca — empilhadas no celular; lado a lado no desktop
-   (ver @media no fim do arquivo — `display:contents` aqui não muda nada
-   sozinho, só existe pra virar `flex` sem afetar o layout mobile) */
-.tela__acoes-principais { display: contents; }
-.tela__novo {
-  display: flex;
-  width: 100%;
-  padding: 16px;
-  font-size: 16px;
+/* capa: uma chapa escura com veios (public/marca/veios.svg) — escura nos
+   dois temas, como a pedra. A sombra de baixo imita a espessura do tampo. */
+.inicio-capa {
+  display: flex; flex-direction: column; gap: 22px;
+  padding: 26px 22px 22px;
   margin-bottom: 18px;
+  border-radius: 18px;
+  color: #f3f1ec;
+  background:
+    linear-gradient(90deg, rgba(17, 28, 46, 0.72) 0%, rgba(17, 28, 46, 0) 62%),
+    url("/marca/veios.svg") right center / cover no-repeat,
+    radial-gradient(120% 140% at 0% 0%, #22385a 0%, #172740 45%, #111c2e 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.28),
+    0 22px 44px -28px rgba(15, 23, 42, 0.7);
+}
+:root[data-theme="dark"] .inicio-capa { outline: 1px solid rgba(255, 255, 255, 0.06); outline-offset: -1px; }
+.inicio-capa h1 {
+  margin: 0;
+  font-family: var(--fonte-marca);
+  font-size: 36px; font-weight: 700; line-height: 1.05; letter-spacing: 0.005em;
+}
+.inicio-capa p {
+  margin: 10px 0 0; max-width: 46ch;
+  font-size: 14.5px; line-height: 1.5; color: rgba(243, 241, 236, 0.78);
+}
+.inicio-capa p strong { color: #fff; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.inicio-capa__novo {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 50px; padding: 0 24px;
+  border: none; border-radius: 999px;
+  background: #f3f1ec; color: #17253b;
+  font-size: 15px; font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 12px 26px -14px rgba(0, 0, 0, 0.7);
+}
+.inicio-capa__novo .icone { stroke-width: 2.2; }
+.inicio-capa__novo:hover { background: #fff; }
+.inicio-capa__novo:focus-visible { outline: 2px solid #c9a46a; outline-offset: 3px; }
+
+/* busca */
+.inicio-barra { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.inicio-busca { position: relative; display: flex; align-items: center; }
+.inicio-busca .icone { position: absolute; left: 14px; color: var(--texto-dim); pointer-events: none; }
+.inicio-busca input {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; min-height: 46px; padding: 0 14px 0 42px;
+  border-radius: 12px; font-size: 15px;
+}
+.inicio-barra__info { margin: 0 2px; font-size: 12.5px; color: var(--texto-dim); }
+
+/* lista vazia / busca sem resultado */
+.inicio-vazio {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 30px 22px; text-align: center;
+  border: 1px dashed var(--borda-forte); border-radius: 14px;
+  color: var(--texto-dim);
+}
+.inicio-vazio strong { color: var(--texto); font-size: 15px; }
+.inicio-vazio p { margin: 0 0 6px; max-width: 48ch; font-size: 13.5px; line-height: 1.5; }
+
+/* amostra da pedra: foto da chapa por cima, textura do catálogo por baixo */
+.amostra {
+  flex: 0 0 auto; display: block;
+  width: 40px; height: 40px; border-radius: 9px;
+  background-color: var(--borda);
+  background-size: cover; background-position: center;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.amostra--vazia {
+  background: repeating-linear-gradient(135deg, var(--surface-2) 0 5px, var(--hover) 5px 10px);
+  box-shadow: inset 0 0 0 1px var(--borda-forte);
 }
 
 .tag-sem-copia {
-  display: block; font-style: normal; font-size: 10px; font-weight: 600;
-  color: #b7791f; margin-top: 2px;
+  display: inline-flex; align-items: center; gap: 5px; margin-left: 8px;
+  font-style: normal; font-size: 11px; font-weight: 700; color: #a16207;
 }
-/* barra de identidade da empresa — separada do título "Projetos" (que é da
-   TELA, não da marca); mesma barra em qualquer tamanho, só o toggle muda
-   pro formato compacto (ver TemaToggle) */
-.app-header {
-  display: flex; justify-content: space-between; align-items: center;
-  gap: 12px; margin: -4px -4px 18px; padding: 12px 4px;
-  border-bottom: 1px solid var(--borda);
-}
-.app-header__marca { display: flex; align-items: center; gap: 10px; }
-.app-header__logo {
-  display: flex; align-items: center; justify-content: center;
-  width: 36px; height: 36px; border-radius: 9px; flex: 0 0 auto;
-  background: var(--acento); color: #fff; font-weight: 700; font-size: 13px;
-}
-.app-header__marca strong { display: block; font-size: 14px; }
-.app-header__marca span { display: block; font-size: 12px; color: var(--texto-dim); }
+.tag-sem-copia::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+:root[data-theme="dark"] .tag-sem-copia { color: #e0b45c; }
 
-.stats-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
-.stat-card {
-  flex: 1 1 180px; display: flex; flex-direction: column; gap: 4px;
-  background: var(--surface); border: 1px solid var(--borda);
-  border-radius: 12px; padding: 14px 16px;
+/* ⋮ + menu de cada projeto (mesmo componente na tabela e nos cartões) */
+.inicio-linha__menu { position: relative; display: flex; align-items: center; flex: 0 0 auto; }
+.inicio-linha__acao {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px; padding: 0;
+  background: transparent; border: none; border-radius: 10px; color: var(--texto-dim);
 }
-.stat-card__rotulo { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texto-dim); }
-.stat-card__valor { font-size: 19px; }
+.inicio-linha__acao:hover, .inicio-linha__acao[aria-expanded="true"] { background: var(--hover); color: var(--texto); }
+.inicio-linha__menu-lista { min-width: 180px; }
 
-/* tabela — só existe visualmente no desktop (ver @media); no mobile a
-   lista de cards abaixo (.lista-projetos) é a versão real */
-.tabela-projetos { display: none; }
-.tabela-projetos__vazio { display: none; color: var(--texto-dim); font-size: 13px; padding: 24px 4px; }
+/* cartões — celular e tablet */
+.inicio-cartoes { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.inicio-cartao {
+  position: relative; display: flex; align-items: stretch; min-width: 0;
+  background: var(--surface); border: 1px solid var(--borda); border-radius: 14px;
+}
+.inicio-cartao:hover { border-color: var(--borda-forte); }
+.inicio-cartao__abrir {
+  flex: 1; min-width: 0;
+  display: grid; grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "amostra nome" "amostra meta" "amostra valor";
+  column-gap: 14px; row-gap: 2px; align-items: center;
+  padding: 12px 4px 12px 12px;
+  background: transparent; border: none; border-radius: 14px; text-align: left;
+}
+.inicio-cartao__abrir:focus-visible { outline: 2px solid var(--acento); outline-offset: -2px; }
+.inicio-cartao__abrir .amostra { grid-area: amostra; width: 54px; height: 54px; border-radius: 10px; }
+.inicio-cartao__nome,
+.inicio-cartao__meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inicio-cartao__nome { grid-area: nome; font-size: 14.5px; }
+.inicio-cartao__meta { grid-area: meta; font-size: 12.5px; color: var(--texto-dim); }
+.inicio-cartao__valor {
+  grid-area: valor; display: flex; align-items: center; flex-wrap: wrap;
+  column-gap: 10px; row-gap: 2px;
+  margin-top: 3px; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.inicio-cartao__valor .tag-sem-copia { margin-left: 0; }
+.inicio-cartao__pendente { font-size: 12.5px; font-weight: 500; color: var(--texto-dim); }
+.inicio-cartao .inicio-linha__menu { padding-right: 4px; }
 
-.tela__topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
-.tela__topo h1 { font-size: 20px; margin: 10px 0 0; }
-.tela__sub { margin: 2px 0 0; font-size: 12.5px; color: var(--texto-dim); }
-.tela__nota { font-size: 12px; color: var(--texto-dim); }
-.tela__busca { width: 100%; padding: 12px 14px; margin-bottom: 16px; min-height: 44px; }
+/* tabela — desktop */
+.inicio-tabela { display: none; }
 
-.lista-projetos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.lista-projetos__vazio { color: var(--texto-dim); font-size: 13px; padding: 24px 4px; }
-.linha-projeto {
-  position: relative;
-  display: flex; align-items: stretch; gap: 6px;
-  background: var(--surface); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden;
+@media (min-width: 601px) {
+  .inicio-topo__conteudo { padding: 12px 24px; }
+  .inicio-topo__logo { height: 42px; }
+  .inicio-topo__link span { display: inline; }
+  .inicio-corpo { padding: 24px 24px 72px; }
+
+  .inicio-capa {
+    flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 28px;
+    min-height: 196px; padding: 34px 36px;
+  }
+  .inicio-capa h1 { font-size: 44px; }
+  .inicio-capa__novo { width: auto; flex: 0 0 auto; min-height: 52px; padding: 0 28px; }
+
+  .inicio-barra { flex-direction: row-reverse; align-items: center; justify-content: space-between; gap: 16px; }
+  .inicio-busca { flex: 0 1 420px; }
+
+  .inicio-cartoes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 }
-.linha-projeto__abrir {
-  flex: 1; display: grid; grid-template-columns: 1.4fr 1.3fr 90px;
-  gap: 12px; align-items: center; background: transparent; border: none; padding: 14px; text-align: left;
-  min-height: 64px;
+
+@media (min-width: 900px) {
+  .inicio-topo__conteudo { padding: 14px 48px; }
+  .inicio-topo__logo { height: 46px; }
+  .inicio-corpo { padding: 32px 48px 80px; }
+
+  .inicio-capa { min-height: 220px; padding: 40px 44px; margin-bottom: 26px; }
+  .inicio-capa h1 { font-size: 50px; }
+  .inicio-capa p { font-size: 15.5px; }
+
+  .inicio-cartoes { display: none; }
+
+  .inicio-tabela {
+    display: table; width: 100%; table-layout: fixed;
+    border-collapse: separate; border-spacing: 0;
+    background: var(--surface);
+    border: 1px solid var(--borda); border-radius: 14px;
+  }
+  .inicio-tabela th {
+    text-align: left; font-size: 12px; font-weight: 600; color: var(--texto-dim);
+    padding: 12px 18px; background: var(--surface-2); border-bottom: 1px solid var(--borda);
+  }
+  /* larguras fixas: a tabela não "pula" quando a busca filtra as linhas */
+  .inicio-tabela th:nth-child(1) { width: 28%; }
+  .inicio-tabela th:nth-child(2) { width: 24%; }
+  .inicio-tabela th:nth-child(3) { width: 14%; }
+  .inicio-tabela th:nth-child(4) { width: 15%; }
+  .inicio-tabela th:nth-child(6) { width: 60px; }
+  .inicio-tabela th:first-child { border-top-left-radius: 14px; }
+  .inicio-tabela th:last-child { border-top-right-radius: 14px; }
+  .inicio-tabela td {
+    padding: 14px 18px; font-size: 13.5px; vertical-align: middle;
+    border-top: 1px solid var(--borda);
+  }
+  .inicio-tabela tbody tr:first-child td { border-top: none; }
+  .inicio-tabela tbody tr:last-child td:first-child { border-bottom-left-radius: 14px; }
+  .inicio-tabela tbody tr:last-child td:last-child { border-bottom-right-radius: 14px; }
+  .inicio-tabela__linha { cursor: pointer; }
+  .inicio-tabela__linha:hover td { background: var(--hover); }
+  .inicio-tabela td > span { display: block; margin-top: 2px; font-size: 12.5px; color: var(--texto-dim); }
+  .inicio-tabela .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .inicio-tabela td.num strong { font-size: 14.5px; }
+  .inicio-tabela .tag-sem-copia { display: flex; margin: 4px 0 0; }
+  .inicio-tabela__abrir {
+    display: block; padding: 0; margin: 0; background: none; border: none; text-align: left;
+    font-size: 14.5px; font-weight: 700; color: var(--texto);
+  }
+  .inicio-tabela__abrir:focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; border-radius: 4px; }
+  .inicio-pedra { display: flex; align-items: center; gap: 12px; }
+  .inicio-pedra .amostra { width: 36px; height: 36px; border-radius: 8px; }
+  .inicio-pedra strong { display: block; font-weight: 600; }
+  .inicio-pedra span { display: block; font-size: 12.5px; color: var(--texto-dim); }
+  .inicio-tabela__menu-cel { text-align: right; }
+  .inicio-tabela td.inicio-tabela__menu-cel { padding: 6px 10px 6px 0; }
+  .inicio-tabela__menu-cel .inicio-linha__menu { justify-content: flex-end; }
 }
-.linha-projeto__nome { display: flex; flex-direction: column; }
-.linha-projeto__nome strong { font-size: 14px; }
-.linha-projeto__nome span { font-size: 12px; color: var(--texto-dim); }
-.linha-projeto__meta { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: var(--texto-dim); }
-.linha-projeto__meta em { font-style: normal; }
-.linha-projeto__total { font-size: 14px; font-weight: 700; color: var(--acento); text-align: right; }
-.linha-projeto__menu-wrap { position: relative; flex: 0 0 auto; display: flex; }
-.linha-projeto__acao {
-  background: transparent; border: none; border-left: 1px solid var(--borda);
-  color: var(--texto-dim); padding: 0 16px; font-size: 18px; min-width: 44px;
-}
-.linha-projeto__acao:hover { color: var(--acento); background: var(--hover); }
-.menu--projeto { min-width: 180px; }
 
 .preco-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
 .preco-card { background: var(--surface); border: 1px solid var(--borda); border-radius: 12px; padding: 14px 16px; }
@@ -1192,6 +1378,22 @@ input[type="range"]::-moz-range-thumb {
   border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin: 0 0 8px;
 }
 .doc__head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+/* proposta: logotipo no topo + filete de latão (o mesmo do logo) */
+.documento {
+  /* o papel é sempre branco: o logo usa as cores do tema claro mesmo no escuro */
+  --marca-nome: #17253b;
+  --marca-luz: #5c7699;
+  --marca-sombra: #17253b;
+  --marca-latao: #9a7442;
+}
+.doc__head--marca {
+  align-items: flex-end; gap: 24px;
+  padding-bottom: 16px; margin-bottom: 22px;
+  border-bottom: 1.5px solid var(--marca-latao);
+}
+.doc__logo { display: block; height: 54px; width: auto; aspect-ratio: 684.1 / 161; margin-bottom: 10px; }
+.documento .doc__empresa { font-size: 12.5px; font-weight: 700; color: #1e293b; margin: 0; }
+.doc__head--marca .doc__num strong { font-size: 15px; color: var(--marca-nome); }
 .doc__head p { margin: 2px 0; color: #64748b; font-size: 11px; }
 .doc__num { text-align: right; }
 .doc__num strong { font-size: 14px; }
@@ -1262,61 +1464,7 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
-/*
- * Tela de Projetos no desktop — antes era a mesma coluna estreita (880px)
- * de qualquer tamanho de tela, sobrando parede vazia dos dois lados numa
- * tela de 1440px+. Aqui: container mais largo, "Novo projeto" + busca lado
- * a lado (em vez de empilhados ocupando 2 linhas à toa), e a lista vira
- * grade de cards em vez de uma coluna única de linhas finas.
- */
 @media (min-width: 900px) {
   .tela { max-width: 1240px; padding: 40px 48px 60px; }
   .tela__topo h1 { font-size: 24px; }
-
-  .tela__acoes-principais {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 22px;
-  }
-  .tela__novo { width: auto; flex: 0 0 auto; margin-bottom: 0; white-space: nowrap; padding: 14px 26px; }
-  .tela__busca { flex: 1; margin-bottom: 0; }
-
-  .lista-projetos { display: none; }
-
-  .tabela-projetos {
-    display: table;
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--surface);
-    border: 1px solid var(--borda);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  .tabela-projetos__vazio { display: block; }
-  .tabela-projetos thead th {
-    text-align: left;
-    font-size: 10.5px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--texto-dim);
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--borda);
-  }
-  .tabela-projetos__linha { cursor: pointer; }
-  .tabela-projetos__linha:hover { background: var(--surface-2); }
-  .tabela-projetos__linha + .tabela-projetos__linha td { border-top: 1px solid var(--borda); }
-  .tabela-projetos td { padding: 14px 16px; font-size: 13px; vertical-align: middle; }
-  .tabela-projetos td strong { display: block; }
-  .tabela-projetos td span { display: block; font-size: 12px; color: var(--texto-dim); }
-  .tabela-projetos__menu-cel { width: 40px; }
-  .tabela-projetos .linha-projeto__acao {
-    background: var(--surface);
-    border: 1px solid var(--borda);
-    border-radius: 999px;
-    min-width: 32px;
-    min-height: 32px;
-    padding: 0;
-    font-size: 15px;
-  }
 }

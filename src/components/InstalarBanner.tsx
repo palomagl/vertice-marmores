@@ -4,9 +4,10 @@
  * projetos. O banner volta a cada sessão até o app estar instalado.
  */
 import { useState } from "react";
+import { CHAVES } from "@/lib/chaves";
 import { estaInstalado, plataforma } from "@/lib/persistencia";
 
-const CHAVE_OCULTAR = "df-banner-instalar-oculto";
+const CHAVE_OCULTAR = CHAVES.bannerInstalarOculto;
 
 const INSTRUCOES: Record<ReturnType<typeof plataforma>, string> = {
   ios: "No Safari: toque em Compartilhar (□↑) e depois em “Adicionar à Tela de Início”.",

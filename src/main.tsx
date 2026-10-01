@@ -1,3 +1,7 @@
+// PRIMEIRO import de propósito: passa as chaves salvas com o nome antigo da
+// empresa para os nomes novos antes de qualquer módulo ler o localStorage
+// (o store lê o tema já na criação).
+import "./lib/migracaoMarca";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";

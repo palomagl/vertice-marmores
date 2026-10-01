@@ -26,17 +26,18 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: "DF Mármores — Projeto e Orçamento",
-        short_name: "DF Projeto",
+        name: "Vértice Mármores — Projeto e Orçamento",
+        short_name: "Vértice",
         description:
           "Monte o projeto da bancada com o cliente e feche o orçamento na hora.",
-        theme_color: "#1e2a45",
+        theme_color: "#17253b",
         background_color: "#f4f5f6",
         display: "standalone",
         orientation: "any",
         icons: [
+          { src: "/icone-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
           { src: "/favicon.png", sizes: "512x512", type: "image/png", purpose: "any" },
-          { src: "/favicon.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          { src: "/icone-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
     }),

@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Cliente Supabase. Preencha .env.local com as chaves do projeto da DF.
+ * Cliente Supabase. Preencha .env.local com as chaves do projeto da Vértice.
  * Enquanto não houver chaves, `supabase` é null e o app roda 100% local
  * (o que é o comportamento esperado na casa do cliente — ver seção 11).
  */

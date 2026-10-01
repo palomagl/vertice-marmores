@@ -8,11 +8,13 @@
 import type { Projeto } from "@/domain/project";
 import { db, listarProjetos } from "./db";
 
-const FORMATO = "df-marmores-backup";
+const FORMATO = "vertice-marmores-backup";
+/** backups gerados antes da troca de nome da empresa continuam importáveis */
+const FORMATO_ANTIGO = "df-marmores-backup";
 const VERSAO = 1;
 
 interface Envelope {
-  formato: typeof FORMATO;
+  formato: string;
   versao: number;
   exportadoEm: string;
   projetos: Projeto[];
@@ -49,7 +51,7 @@ function carimboArquivo(): string {
 /** Exporta uma lista de projetos, baixa o .json e marca cada um como exportado. */
 export async function exportarProjetos(projetos: Projeto[]): Promise<void> {
   if (projetos.length === 0) return;
-  baixarArquivo(`df-marmores_${carimboArquivo()}.json`, serializarBackup(projetos));
+  baixarArquivo(`vertice-marmores_${carimboArquivo()}.json`, serializarBackup(projetos));
   const agora = new Date().toISOString();
   await db.transaction("rw", db.projetos, async () => {
     for (const p of projetos) {
@@ -97,8 +99,9 @@ export async function importarBackup(texto: string): Promise<ResultadoImport> {
     throw new Error("O arquivo não é um JSON válido.");
   }
   const env = dados as Partial<Envelope>;
-  if (env?.formato !== FORMATO || !Array.isArray(env.projetos)) {
-    throw new Error("Este arquivo não é um backup do DF Mármores.");
+  const formatoOk = env?.formato === FORMATO || env?.formato === FORMATO_ANTIGO;
+  if (!formatoOk || !Array.isArray(env.projetos)) {
+    throw new Error("Este arquivo não é um backup do Vértice Mármores.");
   }
 
   const res: ResultadoImport = { novos: 0, atualizados: 0, ignorados: [] };

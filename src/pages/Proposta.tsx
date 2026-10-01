@@ -7,6 +7,7 @@
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Drawing2D } from "@/components/Drawing2D";
+import { Logo } from "@/components/Logo";
 import { MATERIAIS } from "@/domain/catalogo";
 import { AMBIENTE_LABEL, FORMATO_LABEL } from "@/domain/presets";
 import { calcularOrcamento, rotuloTotal } from "@/domain/quote";
@@ -57,13 +58,16 @@ export function Proposta() {
       </div>
 
       <article className="documento">
-        <header className="doc__head">
+        {/* cabeçalho com o logotipo; o nome da empresa (editável em
+            Configurações) continua por extenso na linha de contato e no rodapé */}
+        <header className="doc__head doc__head--marca">
           <div>
-            <h1>{empresa.nome}</h1>
+            <Logo className="doc__logo" />
+            <h1 className="doc__empresa">{empresa.nome}</h1>
             {contato && <p>{contato}</p>}
           </div>
           <div className="doc__num">
-            <strong>PROPOSTA Nº {numero}</strong>
+            <strong>Proposta nº {numero}</strong>
             <p>Data: {hoje.toLocaleDateString("pt-BR")}</p>
             <p>Validade: {validade.toLocaleDateString("pt-BR")}</p>
           </div>

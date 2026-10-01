@@ -1,4 +1,4 @@
-# Segurança — DF Mármores
+# Segurança — Vértice Mármores
 
 App de uso interno. Roda 100% local (Dexie/IndexedDB); Supabase ainda **não**
 conectado. Deploy na Vercel com Deployment Protection ligada.

@@ -1,5 +1,5 @@
 -- =============================================================================
--- DF Mármores e Granitos — schema Supabase
+-- Vértice Mármores — schema Supabase
 -- =============================================================================
 -- Região do projeto: São Paulo — sa-east-1.  ⚠️ NÃO DÁ PARA MUDAR DEPOIS.
 --

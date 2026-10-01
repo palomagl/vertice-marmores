@@ -7,10 +7,22 @@ import Dexie, { type Table } from "dexie";
 import type { Projeto } from "@/domain/project";
 import { nomeProjetoPadrao } from "@/domain/presets";
 import type { TabelaPrecos } from "@/domain/tabelaPrecos";
+import { BANCO_LOCAL, CHAVES } from "./chaves";
 
 export interface ConfigRow {
   chave: string;
   valor: unknown;
+}
+
+/** Projeto antigo que nasceu "sem identificação" ganha o nome padrão. */
+export function garantirNomeProjeto(p: Projeto): void {
+  if (!p.nome || !p.nome.trim()) {
+    p.nome = nomeProjetoPadrao(
+      p.cliente?.nome ?? "",
+      p.ambiente,
+      p.criadoEm ?? p.atualizadoEm ?? new Date().toISOString(),
+    );
+  }
 }
 
 class MarmorariaDB extends Dexie {
@@ -18,7 +30,7 @@ class MarmorariaDB extends Dexie {
   config!: Table<ConfigRow, string>;
 
   constructor() {
-    super("df-marmoraria");
+    super(BANCO_LOCAL);
     // v1 — esquema original
     this.version(1).stores({
       projetos: "id, atualizadoEm, ambiente",
@@ -35,22 +47,14 @@ class MarmorariaDB extends Dexie {
         await tx
           .table<Projeto>("projetos")
           .toCollection()
-          .modify((p) => {
-            if (!p.nome || !p.nome.trim()) {
-              p.nome = nomeProjetoPadrao(
-                p.cliente?.nome ?? "",
-                p.ambiente,
-                p.criadoEm ?? p.atualizadoEm ?? new Date().toISOString(),
-              );
-            }
-          });
+          .modify(garantirNomeProjeto);
       });
   }
 }
 
 export const db = new MarmorariaDB();
 
-const K_PROJETO_ATUAL = "df-projeto-id";
+const K_PROJETO_ATUAL = CHAVES.projetoAtual;
 
 export const idProjetoAtual = {
   get: () => localStorage.getItem(K_PROJETO_ATUAL),
