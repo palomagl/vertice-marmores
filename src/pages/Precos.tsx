@@ -6,7 +6,7 @@
  * segurança, não faz parte do fluxo diário do vendedor.
  */
 import { useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import type { TabelaPrecos } from "@/domain/tabelaPrecos";
 import { exportarTodos, importarBackup } from "@/lib/backup";
 import { useProjectStore } from "@/store/projectStore";
@@ -100,11 +100,24 @@ export function Precos() {
   const setEmpresa = (patch: Partial<TabelaPrecos["empresa"]>) =>
     setTabela({ empresa: { ...tabela.empresa, ...patch } });
 
+  /**
+   * Fechar as Configurações tem que devolver a pessoa ao lugar de onde ela
+   * veio. Isto estava chumbado em /editor: quem abria pela lista de
+   * projetos era jogado dentro de um projeto que não tinha pedido para
+   * abrir. Quem manda a origem é o link que trouxe (state.de); sem isso,
+   * a lista é o destino seguro.
+   */
+  const { state } = useLocation() as { state?: { de?: string } };
+  const volta =
+    state?.de === "/editor"
+      ? { para: "/editor", rotulo: "← Voltar ao projeto" }
+      : { para: "/", rotulo: "← Voltar aos projetos" };
+
   return (
     <div className="tela">
       <header className="tela__topo">
         <div>
-          <Link to="/editor" className="btn-ghost">← Voltar ao projeto</Link>
+          <Link to={volta.para} className="btn-ghost">{volta.rotulo}</Link>
           <h1>Configurações</h1>
         </div>
         <span className="tela__nota">Salvo automaticamente</span>

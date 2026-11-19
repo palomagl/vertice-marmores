@@ -1508,16 +1508,96 @@ input[type="range"]::-moz-range-thumb {
   .formato-picker { grid-template-columns: repeat(4, 1fr); }
 }
 
-@media (min-width: 1180px) {
-  .sheet-backdrop { justify-content: center; }
-  .sheet {
-    width: min(720px, 92vw);
-    max-height: 74vh;
-    max-height: 74dvh;
-    border-radius: 18px;
-    margin-bottom: 4vh;
+/* =====================================================================
+ * Desktop (≥1100px) — a DOCA.
+ *
+ * Até aqui o desktop era a mesma coluna do celular esticada: 3D gigante e
+ * o trabalho acontecendo numa caixa flutuante no meio da tela. Agora a
+ * tela se divide: peça à esquerda, painel da etapa docado à direita, e um
+ * resumo (pedra, medidas, total) embaixo do 3D, para o vendedor responder
+ * o cliente sem abrir painel nenhum.
+ *
+ * Continua sendo UM painel só — não o sanduíche de dois painéis que o
+ * cliente rejeitou. O que muda é que ele para de flutuar.
+ * ===================================================================== */
+@media (min-width: 1100px) {
+  .simu--doca { padding-right: var(--doca-w, 400px); }
+
+  .simu--doca .sheet-backdrop {
+    position: fixed;
+    top: 0; right: 0; bottom: 0; left: auto;
+    width: var(--doca-w, 400px);
+    background: none;
+    backdrop-filter: none;
+    display: block;
+    pointer-events: auto;
   }
+  .simu--doca .sheet {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
+    border-left: 1px solid var(--borda);
+    box-shadow: none;
+    transform: none !important;   /* nada de arraste na doca */
+    animation: none;              /* não "sobe": a coluna já está ali */
+    display: flex;
+    flex-direction: column;
+  }
+  .simu--doca .sheet__handle { cursor: default; padding-top: 14px; }
+  .simu--doca .sheet__head { padding: 2px 24px 14px; }
+  .simu--doca .sheet__body { flex: 1; overflow-y: auto; }
+
+  /* a doca cresce um pouco em telas bem largas, mas o 3D sempre manda */
+  .simu--doca { --doca-w: clamp(380px, 26vw, 480px); }
 }
+
+/* resumo embaixo do 3D — só existe quando há doca */
+.resumo {
+  display: flex;
+  gap: 10px;
+  padding: 10px 22px;
+  background: var(--surface);
+  border-top: 1px solid var(--borda);
+  flex: 0 0 auto;
+}
+.resumo__bloco {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 1;
+  min-width: 0;
+  padding: 9px 14px;
+  border: 1px solid var(--borda);
+  border-radius: 11px;
+  background: var(--bg);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+button.resumo__bloco { cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+button.resumo__bloco:hover { border-color: var(--borda-forte); }
+.resumo__swatch {
+  width: 44px; height: 44px; flex: 0 0 auto;
+  border-radius: 9px; border: 1px solid rgba(0, 0, 0, 0.14);
+  background-size: cover; background-position: center;
+}
+.resumo__swatch--vazio {
+  background: repeating-linear-gradient(45deg, var(--borda) 0 6px, transparent 6px 12px);
+}
+.resumo__txt { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.resumo__txt small {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--texto-dim);
+}
+.resumo__txt strong {
+  font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.resumo__txt em { font-style: normal; font-size: 11.5px; color: var(--texto-dim); }
+.resumo__total { flex: 0 0 auto; min-width: 180px; }
+.resumo__total .resumo__txt strong { font-size: 19px; }
+.resumo__pendente { color: var(--texto-dim); }
 
 @media (min-width: 900px) {
   .tela { max-width: 1240px; padding: 40px 48px 60px; }

@@ -22,8 +22,10 @@ import { Link } from "react-router-dom";
 import { materialPorId } from "@/domain/catalogo";
 import { AMBIENTE_LABEL, FORMATO_LABEL } from "@/domain/presets";
 import { calcularOrcamento, rotuloTotal } from "@/domain/quote";
+import { useDoca } from "@/lib/tela";
 import { useProjectStore, type ModoVisualizacao } from "@/store/projectStore";
 import { AmbienteStrip } from "./AmbienteStrip";
+import { ResumoPeca } from "./ResumoPeca";
 import { Segmented } from "./campos";
 import { DimensionBar } from "./DimensionBar";
 import { Drawing2D } from "./Drawing2D";
@@ -71,6 +73,13 @@ export function Configurador() {
   const [etapaAtual, setEtapaAtual] = useState<EtapaId>("ambiente");
   /** painel da etapa aberto (mostrando a pergunta) ou recolhido (só o 3D) */
   const [painelAberto, setPainelAberto] = useState(true);
+  /**
+   * Em tela grande o painel fica DOCADO à direita e não fecha: a coluna
+   * ficaria vazia e o espaço, desperdiçado. Abaixo da doca ele volta a ser
+   * o bottom sheet que sobe por cima do 3D.
+   */
+  const doca = useDoca();
+  const painelVisivel = painelAberto || doca;
   const [revisao, setRevisao] = useState(false);
   const [dragY, setDragY] = useState(0);
   const dragRef = useRef<number | null>(null);
@@ -219,7 +228,11 @@ export function Configurador() {
   };
 
   return (
-    <div className={`simu ${apresentacao ? "simu--apresentacao" : ""}`}>
+    <div
+      className={`simu ${apresentacao ? "simu--apresentacao" : ""} ${
+        doca && !apresentacao ? "simu--doca" : ""
+      }`}
+    >
       {!apresentacao && (
         <header className="simu__header">
           <Link to="/" className="simu__voltar" title="Meus projetos">‹</Link>
@@ -277,7 +290,7 @@ export function Configurador() {
                   <button onClick={() => { iniciarNovoProjeto(); setMenu(false); }}>
                     Novo projeto
                   </button>
-                  <Link to="/precos" onClick={() => setMenu(false)}>Configurações</Link>
+                  <Link to="/precos" state={{ de: "/editor" }} onClick={() => setMenu(false)}>Configurações</Link>
                 </div>
               </>
             )}
@@ -293,7 +306,7 @@ export function Configurador() {
         />
       )}
       {!apresentacao && modoUI === "edicao" && (
-        <EdicaoBar ativa={painelAberto ? etapaAtual : null} onAbrir={irPara} />
+        <EdicaoBar ativa={painelVisivel ? etapaAtual : null} onAbrir={irPara} />
       )}
 
       <div className="simu__palco">
@@ -320,12 +333,16 @@ export function Configurador() {
         {modo === "3d" && <div className="simu__hint">arraste para girar</div>}
 
         {/* painel recolhido (arrastado pra baixo) — pastilha pra reabrir na etapa em que parou */}
-        {!apresentacao && !painelAberto && (
+        {!apresentacao && !painelVisivel && (
           <button className="simu__reabrir" onClick={() => setPainelAberto(true)}>
             {etapaInfo.titulo} <span>↑</span>
           </button>
         )}
       </div>
+
+      {/* resumo sempre à vista no desktop: pedra, medidas e total sem abrir
+          painel nenhum — é o que o cliente pergunta de pé na loja */}
+      {!apresentacao && doca && <ResumoPeca onIr={irPara} />}
 
       <div className="simu__bottom">
         <footer className="simu__cta">
@@ -375,8 +392,14 @@ export function Configurador() {
       </div>
 
       {/* painel único da etapa atual — mesmo mecanismo em qualquer tamanho de tela */}
-      {!apresentacao && painelAberto && (
-        <div className="sheet-backdrop" onClick={() => setPainelAberto(false)}>
+      {!apresentacao && painelVisivel && (
+        <div
+          className="sheet-backdrop"
+          onClick={() => {
+            // docado não fecha clicando fora: não há "fora", é uma coluna
+            if (!doca) setPainelAberto(false);
+          }}
+        >
           <div
             className="sheet"
             onClick={(e) => e.stopPropagation()}
@@ -384,16 +407,17 @@ export function Configurador() {
           >
             <div
               className="sheet__handle"
-              onPointerDown={onDragStart}
-              onPointerMove={onDragMove}
-              onPointerUp={onDragEnd}
-              onPointerCancel={onDragEnd}
+              // arrastar pra fechar é gesto de bottom sheet; docado não arrasta
+              onPointerDown={doca ? undefined : onDragStart}
+              onPointerMove={doca ? undefined : onDragMove}
+              onPointerUp={doca ? undefined : onDragEnd}
+              onPointerCancel={doca ? undefined : onDragEnd}
             >
-              <div className="sheet__grab" />
+              {!doca && <div className="sheet__grab" />}
               <div className="sheet__head">
                 {/* modo guiado pergunta ("Qual é o formato...?"); edição só nomeia a ferramenta ("Formato") */}
                 <strong>{modoUI === "guiado" ? etapaInfo.pergunta : etapaInfo.titulo}</strong>
-                <button
+                {!doca && <button
                   onClick={() => setPainelAberto(false)}
                   // o header inteiro é área de arrastar — sem isso, o toque aqui
                   // vira início de arraste em vez de clique (ver Configurador antigo)
@@ -402,7 +426,7 @@ export function Configurador() {
                   title="Recolher e ver a peça"
                 >
                   ⌄
-                </button>
+                </button>}
               </div>
             </div>
             <div className="sheet__body">
