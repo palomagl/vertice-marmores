@@ -7,6 +7,7 @@ import {
   PRESETS,
   realocarRecortesOrfaos,
   trechosAoTrocarFormato,
+  formatosDoAmbiente,
   trechosPadrao,
 } from "./presets";
 import type { Ambiente, Recorte } from "./project";
@@ -201,5 +202,50 @@ describe("4 ambientes novos — churrasqueira, nicho, tanque, aparador", () => {
   it("nenhuma bancada tradicional (pia, gourmet, banheiro, ilha, balcão, lavanderia) é de formato fixo", () => {
     const bancadas: Ambiente[] = ["pia", "gourmet", "banheiro", "ilha", "balcao", "lavanderia"];
     for (const a of bancadas) expect(PRESETS[a].formatoFixo).toBeFalsy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe("formatosDoAmbiente — cada ambiente só oferece o que cabe nele", () => {
+  it("peça de formato único oferece só o formato dela (não há o que escolher)", () => {
+    for (const a of NOVOS) {
+      expect(formatosDoAmbiente(a)).toEqual([PRESETS[a].formato]);
+    }
+  });
+
+  it("ambiente sem restrição oferece os quatro", () => {
+    expect(formatosDoAmbiente("pia")).toEqual(["linear", "L", "P", "U"]);
+    expect(formatosDoAmbiente("gourmet")).toEqual(["linear", "L", "P", "U"]);
+  });
+
+  it("ilha não oferece P nem U — a peça é solta no meio do cômodo", () => {
+    const fmts = formatosDoAmbiente("ilha");
+    expect(fmts).not.toContain("P");
+    expect(fmts).not.toContain("U");
+    expect(fmts).toContain("linear");
+  });
+
+  it("banheiro, balcão e lavanderia também ficam em linear/L", () => {
+    for (const a of ["banheiro", "balcao", "lavanderia"] as Ambiente[]) {
+      expect(formatosDoAmbiente(a)).toEqual(["linear", "L"]);
+    }
+  });
+
+  it("a ordem é sempre a do seletor, não a de escrita do preset", () => {
+    const fmts = formatosDoAmbiente("ilha");
+    expect(fmts.indexOf("linear")).toBeLessThan(fmts.indexOf("L"));
+  });
+
+  it("o formato padrão do ambiente SEMPRE está entre os oferecidos", () => {
+    const todos = Object.keys(PRESETS) as Ambiente[];
+    for (const a of todos) {
+      expect(formatosDoAmbiente(a)).toContain(PRESETS[a].formato);
+    }
+  });
+
+  it("nenhum ambiente fica sem opção nenhuma", () => {
+    const todos = Object.keys(PRESETS) as Ambiente[];
+    for (const a of todos) expect(formatosDoAmbiente(a).length).toBeGreaterThan(0);
   });
 });

@@ -593,7 +593,14 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* seletor visual de formato — geometria real em miniatura (FormatoPicker.tsx) */
-.formato-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* auto-fit porque o número de cartões varia por ambiente (ver
+   formatosDoAmbiente): com 2 formatos eles esticam e preenchem a linha,
+   em vez de ficar dois quadradinhos e um vão vazio do lado */
+.formato-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 12px;
+}
 .formato-card {
   display: flex;
   flex-direction: column;
@@ -1505,7 +1512,7 @@ input[type="range"]::-moz-range-thumb {
   .sheet__body { padding: 16px 24px 20px; gap: 20px; }
   .sheet__footer { padding: 14px 24px; }
   .ambiente-card { flex: 1 1 30%; height: 128px; }
-  .formato-picker { grid-template-columns: repeat(4, 1fr); }
+  .formato-picker { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 }
 
 /* =====================================================================

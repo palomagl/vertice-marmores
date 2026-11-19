@@ -114,6 +114,21 @@ interface PresetAmbiente {
    */
   formatoFixo?: boolean;
   /**
+   * Quais formatos a etapa "Formato" oferece neste ambiente. Ausente =
+   * oferece os quatro (Linear/L/P/U).
+   *
+   * ⚠️ REGRA v1 — PENDENTE DE CONFIRMAÇÃO DA MARMORARIA.
+   * Oferecer quatro opções iguais em todo ambiente convida erro: o vendedor
+   * escolhe "Ilha em U" na frente do cliente e descobre depois que não é
+   * algo que a empresa faz. As listas abaixo são um palpite conservador
+   * (o que é lugar-comum), NÃO uma regra de engenharia — nada aqui é
+   * impossível de cortar numa chapa.
+   *
+   * Confirmar com a marmoraria e corrigir AQUI, num lugar só. Nenhuma
+   * outra parte do app precisa saber disso.
+   */
+  formatosPermitidos?: Formato[];
+  /**
    * espessura do bloco (mm), se diferente do padrão de bancada (20/30mm) —
    * o seletor da etapa Medidas só tem essas duas opções, mas um tanque
    * esculpido é bem mais grosso (15–20cm). Ausente = usa a espessura
@@ -192,6 +207,9 @@ export const PRESETS: Record<Ambiente, PresetAmbiente> = {
         centralizada: true,
       },
     ],
+    // v1: bancada de banheiro é quase sempre reta; em L acontece em
+    // banheiro de canto. P e U aqui são raridade.
+    formatosPermitidos: ["linear", "L"],
     descricao: "Bancada de banheiro, 55 cm, com cuba e saia frontal.",
   },
   ilha: {
@@ -203,6 +221,10 @@ export const PRESETS: Record<Ambiente, PresetAmbiente> = {
     saiaLados: ["esquerdo", "direito"],
     saiaAltura: "piso",
     recortes: [{ ...CUBA_COZINHA, centralizada: true }],
+    // v1: ilha é peça solta no meio do cômodo, com as laterais descendo
+    // ao piso. Retangular é o normal; em L existe em cozinha grande.
+    // Em P e em U a peça encosta/abraça parede, que é o oposto de ilha.
+    formatosPermitidos: ["linear", "L"],
     descricao: "Ilha central: laterais em pedra até o piso.",
   },
   balcao: {
@@ -214,6 +236,8 @@ export const PRESETS: Record<Ambiente, PresetAmbiente> = {
     saiaLados: [],
     saiaAltura: DEFAULTS.saia,
     recortes: [],
+    // v1: balcão de apoio é reto ou em L (balcão de canto). U é raro.
+    formatosPermitidos: ["linear", "L"],
     descricao: "Balcão / bancada de apoio, bordas acabadas.",
   },
   lavanderia: {
@@ -234,6 +258,9 @@ export const PRESETS: Record<Ambiente, PresetAmbiente> = {
         centralizada: true,
       },
     ],
+    // v1: lavanderia costuma ser um pano reto sobre o tanque; em L em
+    // área de serviço de canto.
+    formatosPermitidos: ["linear", "L"],
     descricao: "Bancada de lavanderia sobre o tanque, com cuba e frontão.",
   },
   /*
@@ -366,6 +393,35 @@ export const PRESETS: Record<Ambiente, PresetAmbiente> = {
  * juntos), só o braço B nasce bem mais curto pra parecer uma península de
  * verdade, não um segundo L.
  */
+/** os quatro formatos de bancada, na ordem em que o seletor mostra */
+export const FORMATOS_BANCADA: Formato[] = ["linear", "L", "P", "U"];
+
+/**
+ * Formatos que a etapa "Formato" deve oferecer para este ambiente.
+ *
+ * Peça de formato único (nicho, aparador, tanque…) devolve só o formato
+ * dela — não há o que escolher. Os demais devolvem a lista do preset, ou
+ * os quatro quando o preset não restringe.
+ *
+ * Toda a regra mora em `PRESETS[ambiente].formatosPermitidos`; isto aqui
+ * só resolve. Ver o aviso naquele campo: as listas são palpite v1 e
+ * precisam da confirmação da marmoraria.
+ */
+export function formatosDoAmbiente(ambiente: Ambiente): Formato[] {
+  const preset = PRESETS[ambiente];
+  if (preset.formatoFixo) return [preset.formato];
+
+  const permitidos = preset.formatosPermitidos;
+  if (!permitidos?.length) return FORMATOS_BANCADA;
+
+  // a ordem do seletor é sempre a mesma, não a ordem em que foi escrito
+  const lista = FORMATOS_BANCADA.filter((f) => permitidos.includes(f));
+
+  // trava de segurança: o formato padrão do ambiente nunca pode ficar de
+  // fora da própria lista, senão o projeto nasce num formato inalcançável
+  return lista.includes(preset.formato) ? lista : [preset.formato, ...lista];
+}
+
 export function trechosPadrao(formato: Formato, profundidade: number): Bancada["trechos"] {
   switch (formato) {
     case "linear":

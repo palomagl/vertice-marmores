@@ -10,10 +10,14 @@
  */
 import { contornoBancada } from "@/domain/geometry";
 import type { Formato } from "@/domain/project";
-import { AMBIENTE_LABEL, FORMATO_LABEL, PRESETS, trechosPadrao } from "@/domain/presets";
+import {
+  AMBIENTE_LABEL,
+  FORMATO_LABEL,
+  formatosDoAmbiente,
+  PRESETS,
+  trechosPadrao,
+} from "@/domain/presets";
 import { useProjectStore } from "@/store/projectStore";
-
-const FORMATOS: Formato[] = ["linear", "L", "P", "U"];
 /** profundidade só pra desenhar a miniatura — não é a profundidade real do projeto */
 const PROFUNDIDADE_ILUSTRATIVA = 600;
 
@@ -64,9 +68,14 @@ export function FormatoPicker() {
     );
   }
 
+  // cada ambiente oferece só os formatos que fazem sentido nele — quatro
+  // opções iguais em tudo convidavam a escolher "Ilha em U" na frente do
+  // cliente. A regra mora em PRESETS, não aqui.
+  const formatos = formatosDoAmbiente(ambiente);
+
   return (
     <div className="formato-picker">
-      {FORMATOS.map((f) => {
+      {formatos.map((f) => {
         const { viewBox, points } = miniContorno(f);
         return (
           <button
