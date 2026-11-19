@@ -4,13 +4,15 @@ import {
   AMBIENTE_LABEL,
   DEFAULTS,
   montarAmbiente,
+  projetoNovo,
   PRESETS,
   realocarRecortesOrfaos,
   trechosAoTrocarFormato,
+  duplicarProjeto,
   formatosDoAmbiente,
   trechosPadrao,
 } from "./presets";
-import type { Ambiente, Recorte } from "./project";
+import type { Ambiente, Projeto, Recorte } from "./project";
 
 // ---------------------------------------------------------------------------
 
@@ -247,5 +249,81 @@ describe("formatosDoAmbiente — cada ambiente só oferece o que cabe nele", () 
   it("nenhum ambiente fica sem opção nenhuma", () => {
     const todos = Object.keys(PRESETS) as Ambiente[];
     for (const a of todos) expect(formatosDoAmbiente(a).length).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe("duplicarProjeto — copia a PEÇA, não a proposta", () => {
+  function original(): Projeto {
+    const p = projetoNovo("ilha");
+    return {
+      ...p,
+      id: "proj_original",
+      nome: "Cozinha da Julia",
+      cliente: { nome: "Julia Almeida", telefone: "(49) 99999-0001" },
+      numero: "2026-0001",
+      exportadoEm: "2026-11-01T10:00:00.000Z",
+      criadoEm: "2026-11-01T09:00:00.000Z",
+      atualizadoEm: "2026-11-01T09:30:00.000Z",
+      distanciaKm: 12,
+    };
+  }
+
+  it("NUNCA herda o número da proposta — duas propostas com 2026-0001 furariam a contagem", () => {
+    const copia = duplicarProjeto(original(), { nome: "Marcos", telefone: "" });
+    expect(copia.numero).toBeUndefined();
+  });
+
+  it("não herda o marcador de backup: a cópia ainda não foi exportada", () => {
+    const copia = duplicarProjeto(original(), { nome: "Marcos", telefone: "" });
+    expect(copia.exportadoEm).toBeUndefined();
+  });
+
+  it("é um registro novo: id e datas próprios", () => {
+    const base = original();
+    const copia = duplicarProjeto(base, { nome: "Marcos", telefone: "" }, "2026-11-19T12:00:00.000Z");
+    expect(copia.id).not.toBe(base.id);
+    expect(copia.criadoEm).toBe("2026-11-19T12:00:00.000Z");
+    expect(copia.atualizadoEm).toBe("2026-11-19T12:00:00.000Z");
+  });
+
+  it("copia a peça inteira: ambiente, formato, medidas, recortes, complementos, pedra e km", () => {
+    const base = original();
+    const copia = duplicarProjeto(base, { nome: "Marcos", telefone: "" });
+    expect(copia.ambiente).toBe(base.ambiente);
+    expect(copia.bancada).toEqual(base.bancada);
+    expect(copia.recortes).toEqual(base.recortes);
+    expect(copia.complementos).toEqual(base.complementos);
+    expect(copia.acabamentoBorda).toEqual(base.acabamentoBorda);
+    expect(copia.material).toEqual(base.material);
+    expect(copia.distanciaKm).toBe(12);
+  });
+
+  it("cliente novo ganha nome de projeto novo — a lista não mostra a peça do Marcos com o nome da Julia", () => {
+    const copia = duplicarProjeto(original(), { nome: "Marcos Souza", telefone: "" });
+    expect(copia.cliente.nome).toBe("Marcos Souza");
+    expect(copia.nome).toContain("Marcos Souza");
+    expect(copia.nome).not.toContain("Julia");
+  });
+
+  it("mesmo cliente (outro cômodo da mesma casa) preserva o nome dado e marca como cópia", () => {
+    const copia = duplicarProjeto(original(), { nome: "Julia Almeida", telefone: "" });
+    expect(copia.nome).toBe("Cozinha da Julia (cópia)");
+  });
+
+  it("duplicar sem cliente vira simulação, com nome derivado", () => {
+    const copia = duplicarProjeto(original(), { nome: "  ", telefone: "" });
+    expect(copia.cliente.nome).toBe("");
+    expect(copia.nome).toContain("Simulação");
+  });
+
+  it("mexer na cópia não mexe no original (clone profundo de verdade)", () => {
+    const base = original();
+    const copia = duplicarProjeto(base, { nome: "Marcos", telefone: "" });
+    copia.bancada.trechos[0].comprimento = 1;
+    copia.recortes.length = 0;
+    expect(base.bancada.trechos[0].comprimento).not.toBe(1);
+    expect(base.recortes.length).toBeGreaterThan(0);
   });
 });

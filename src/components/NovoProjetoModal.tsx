@@ -8,6 +8,7 @@ import { useProjectStore } from "@/store/projectStore";
 
 export function NovoProjetoModal() {
   const aberto = useProjectStore((s) => s.criandoProjeto);
+  const base = useProjectStore((s) => s.duplicandoDe);
   const cancelar = useProjectStore((s) => s.cancelarNovoProjeto);
   const criarProjeto = useProjectStore((s) => s.criarProjeto);
   const navigate = useNavigate();
@@ -18,13 +19,18 @@ export function NovoProjetoModal() {
 
   useEffect(() => {
     if (aberto) {
-      setNome("");
-      setTelefone("");
+      // duplicando: já vem com o cliente do original, para o caso comum de
+      // outro cômodo da mesma casa. Vem selecionado para trocar digitando.
+      setNome(base?.cliente.nome ?? "");
+      setTelefone(base?.cliente.telefone ?? "");
       // foco automático no campo do cliente
-      const t = setTimeout(() => nomeRef.current?.focus(), 30);
+      const t = setTimeout(() => {
+        nomeRef.current?.focus();
+        if (base?.cliente.nome) nomeRef.current?.select();
+      }, 30);
       return () => clearTimeout(t);
     }
-  }, [aberto]);
+  }, [aberto, base]);
 
   useEffect(() => {
     if (!aberto) return;
@@ -55,7 +61,14 @@ export function NovoProjetoModal() {
           if (nome.trim()) void criar(true);
         }}
       >
-        <h2>Novo projeto</h2>
+        <h2>{base ? "Duplicar projeto" : "Novo projeto"}</h2>
+        {base && (
+          <p className="modal__nota">
+            Copia a peça de <strong>{base.nome}</strong> — ambiente, formato,
+            medidas, recortes, acabamento e pedra. A cópia nasce sem número de
+            proposta.
+          </p>
+        )}
 
         <label className="modal__campo">
           <span>Nome do cliente</span>
@@ -80,7 +93,7 @@ export function NovoProjetoModal() {
         </label>
 
         <button type="submit" className="btn-primario" disabled={!nome.trim()}>
-          Criar projeto
+          {base ? "Duplicar" : "Criar projeto"}
         </button>
         <button
           type="button"

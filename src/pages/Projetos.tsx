@@ -109,6 +109,7 @@ export function Projetos() {
   const lista = useProjectStore((s) => s.lista);
   const tabela = useProjectStore((s) => s.tabela);
   const iniciarNovoProjeto = useProjectStore((s) => s.iniciarNovoProjeto);
+  const iniciarDuplicacao = useProjectStore((s) => s.iniciarDuplicacao);
   const abrirProjeto = useProjectStore((s) => s.abrirProjeto);
   const excluirProjeto = useProjectStore((s) => s.excluirProjeto);
   const recarregarLista = useProjectStore((s) => s.recarregarLista);
@@ -145,6 +146,13 @@ export function Projetos() {
   const exportar = (p: Projeto) => {
     setMenuAberto(null);
     void exportarProjetos([p]).then(recarregarLista);
+  };
+
+  // marmoraria faz muita peça parecida: duplicar poupa refazer medidas,
+  // recortes e acabamento. Abre o modal pedindo o cliente da cópia.
+  const duplicar = (p: Projeto) => {
+    setMenuAberto(null);
+    iniciarDuplicacao(p);
   };
 
   const excluir = (p: Projeto) => {
@@ -184,6 +192,7 @@ export function Projetos() {
             }}
           />
           <div className="menu inicio-linha__menu-lista" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => duplicar(p)}>Duplicar</button>
             <button onClick={() => exportar(p)}>Exportar (.json)</button>
             <button className="menu__perigo" onClick={() => excluir(p)}>
               Excluir

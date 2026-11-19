@@ -586,4 +586,48 @@ export function projetoNovo(ambiente: Ambiente = "pia"): Projeto {
   };
 }
 
+/**
+ * Cópia de um projeto para um novo orçamento. Marmoraria faz muita peça
+ * parecida; duplicar poupa refazer medidas, recortes e acabamento.
+ *
+ * Copia a PEÇA, não a proposta. O que NÃO vem junto:
+ *
+ *  - `numero`: é o sequencial de UMA proposta. Copiado, duas propostas
+ *    diferentes sairiam com o mesmo 2026-0001 e a contagem da empresa
+ *    deixaria de bater com o papel que o cliente tem na mão.
+ *  - `exportadoEm`: a cópia é um registro novo e não entrou em backup
+ *    nenhum ainda — herdar isso a marcaria como salva sem estar.
+ *  - `id`, `criadoEm`, `atualizadoEm`: registro novo.
+ *
+ * O cliente é sempre informado por quem duplica (ver iniciarDuplicacao):
+ * copiar calado o cliente do original acabaria mandando proposta com o
+ * nome errado.
+ */
+export function duplicarProjeto(
+  base: Projeto,
+  cliente: { nome: string; telefone: string },
+  agoraISO: string = new Date().toISOString(),
+): Projeto {
+  const copia: Projeto = structuredClone(base);
+  const nome = cliente.nome.trim();
+
+  copia.id = novoId("proj");
+  copia.criadoEm = agoraISO;
+  copia.atualizadoEm = agoraISO;
+  delete copia.numero;
+  delete copia.exportadoEm;
+  copia.sync = "local";
+  copia.cliente = { ...base.cliente, nome, telefone: cliente.telefone.trim() };
+
+  // mesmo cliente (outro cômodo da mesma casa) preserva o nome que o
+  // vendedor deu e marca como cópia; cliente novo ganha nome novo, senão
+  // a lista mostraria a peça do Marcos com o nome da Julia
+  const mesmoCliente = nome !== "" && nome === base.cliente.nome.trim();
+  copia.nome = mesmoCliente
+    ? `${base.nome} (cópia)`
+    : nomeProjetoPadrao(nome, copia.ambiente, agoraISO);
+
+  return copia;
+}
+
 export { novoId };

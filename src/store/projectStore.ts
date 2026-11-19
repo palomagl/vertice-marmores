@@ -12,6 +12,7 @@ import type {
 import { MATERIAIS } from "@/domain/catalogo";
 import {
   PRESETS,
+  duplicarProjeto,
   montarAmbiente,
   nomeProjetoPadrao,
   novoId,
@@ -81,6 +82,16 @@ interface ProjectState {
   hidratar: () => Promise<void>;
   recarregarLista: () => Promise<void>;
   iniciarNovoProjeto: () => void;
+  /**
+   * Duplicar: marmoraria faz muita peça parecida. Abre o mesmo modal do
+   * projeto novo, já com o cliente do original preenchido — o vendedor
+   * confirma (mesmo cliente, outro cômodo) ou troca (outra casa, peça
+   * parecida). Perguntar o cliente é de propósito: copiar calado o nome
+   * do cliente anterior acabaria mandando proposta com o nome errado.
+   */
+  iniciarDuplicacao: (base: Projeto) => void;
+  /** projeto que serve de molde enquanto o modal está aberto */
+  duplicandoDe: Projeto | null;
   cancelarNovoProjeto: () => void;
   criarProjeto: (cliente: { nome: string; telefone: string }) => Promise<void>;
   abrirProjeto: (id: string) => Promise<void>;
@@ -157,6 +168,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
     apresentacao: false,
     tema: lerTema(),
     criandoProjeto: false,
+    duplicandoDe: null,
     recemCriado: false,
 
     setAba: (aba) => set({ aba }),
@@ -222,14 +234,27 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
 
     recarregarLista: async () => set({ lista: await listarProjetos() }),
 
-    iniciarNovoProjeto: () => set({ criandoProjeto: true }),
-    cancelarNovoProjeto: () => set({ criandoProjeto: false }),
+    iniciarNovoProjeto: () => set({ criandoProjeto: true, duplicandoDe: null }),
+    iniciarDuplicacao: (base) => set({ criandoProjeto: true, duplicandoDe: base }),
+    cancelarNovoProjeto: () => set({ criandoProjeto: false, duplicandoDe: null }),
 
     criarProjeto: async (cliente) => {
-      const p = projetoNovo("pia");
-      p.cliente = { nome: cliente.nome.trim(), telefone: cliente.telefone.trim() };
-      p.nome = nomeProjetoPadrao(p.cliente.nome, p.ambiente, p.criadoEm);
-      p.material = PEDRA_PADRAO;
+      const base = get().duplicandoDe;
+      const nomeCliente = cliente.nome.trim();
+      const telefone = cliente.telefone.trim();
+
+      let p: Projeto;
+      if (base) {
+        // a regra da cópia mora no domínio (duplicarProjeto), porque é lá
+        // que ela é testável: herdar o número da proposta sairia caro
+        p = duplicarProjeto(base, { nome: nomeCliente, telefone });
+      } else {
+        p = projetoNovo("pia");
+        p.cliente = { nome: nomeCliente, telefone };
+        p.nome = nomeProjetoPadrao(nomeCliente, p.ambiente, p.criadoEm);
+        p.material = PEDRA_PADRAO;
+      }
+
       await salvarProjeto(p);
       idProjetoAtual.set(p.id);
       set({
@@ -237,7 +262,10 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
         aba: "medidas",
         apresentacao: false,
         criandoProjeto: false,
-        recemCriado: true,
+        duplicandoDe: null,
+        // duplicata já vem configurada: o vendedor quer ajustar, não ser
+        // levado pelo tour guiado desde "escolha o ambiente"
+        recemCriado: !base,
         historico: [],
         futuro: [],
       });
