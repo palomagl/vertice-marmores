@@ -1365,12 +1365,41 @@ input[type="range"]::-moz-range-thumb {
 .preco-backup__acoes { display: flex; flex-wrap: wrap; gap: 8px; }
 .preco-backup__aviso { margin: 8px 0 0; font-size: 12px; color: var(--texto-dim); cursor: pointer; }
 
-/* ===================== Proposta / Ordem de serviço ===================== */
-.proposta-wrap { min-height: 100%; background: #e7e9eb; padding: 24px; }
-.proposta-bar { max-width: 800px; margin: 0 auto 16px; display: flex; justify-content: space-between; }
+/* ===================== Proposta / Ordem de serviço =====================
+ * A folha é SEMPRE 210mm (794px a 96dpi). Na tela ela encolhe com
+ * transform: scale(), então o preview no celular é a folha de verdade,
+ * só menor — não uma página responsiva que mente sobre a impressão.
+ * ===================================================================== */
+.folha-wrap { min-height: 100%; background: #e7e9eb; padding: 16px; }
+.folha-palco {
+  /* transform não ocupa espaço: a altura vem medida do JS */
+  height: var(--folha-altura, auto);
+  margin: 0 auto;
+  max-width: 794px;
+}
+.folha-barra {
+  max-width: 794px; margin: 0 auto 14px;
+  display: flex; gap: 10px; align-items: center; justify-content: space-between;
+}
+.folha-barra__imprimir { white-space: nowrap; }
+.folha-barra__voltar { white-space: nowrap; }
+
 .documento {
-  max-width: 800px; margin: 0 auto; background: #fff; color: #1e293b;
-  padding: 32px 36px; border-radius: 10px; font-size: 13px; line-height: 1.5; box-shadow: var(--sombra);
+  width: 794px;             /* 210mm */
+  transform: scale(var(--folha-escala, 1));
+  transform-origin: top left;
+  background: #fff; color: #1e293b;
+  padding: 57px;            /* 15mm — mesma margem do @page */
+  border-radius: 6px; font-size: 13px; line-height: 1.5; box-shadow: var(--sombra);
+}
+
+/* tarja de simulação — tem que sair na impressão, inclusive a cor */
+.doc__tarja {
+  margin: 0 0 20px; padding: 9px 14px; border-radius: 5px;
+  background: #fef3c7; border: 1.5px solid #d97706; color: #78350f;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  text-align: center;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
 .documento h1 { font-size: 18px; margin: 0; }
 .documento h2 {
@@ -1402,7 +1431,10 @@ input[type="range"]::-moz-range-thumb {
 .doc__desenho { margin: 16px 0; height: 280px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; }
 .doc__spec { border-collapse: collapse; width: 100%; }
 .doc__spec th { text-align: left; width: 130px; color: #64748b; font-weight: 600; padding: 3px 8px 3px 0; vertical-align: top; text-transform: capitalize; }
-.doc__spec td { padding: 3px 0; text-transform: capitalize; }
+/* sem capitalize geral: virava "200 Cm · Prof. 90 Cm". Unidade é minúscula.
+   Quem precisa de inicial maiúscula pede com .cap. */
+.doc__spec td { padding: 3px 0; }
+.cap { text-transform: capitalize; }
 .doc__valores { border-collapse: collapse; width: 100%; }
 .doc__valores td { padding: 5px 0; border-bottom: 1px solid #f1f5f9; }
 .doc__valores td em { font-style: normal; color: #94a3b8; font-size: 11px; margin-left: 6px; }
@@ -1419,10 +1451,33 @@ input[type="range"]::-moz-range-thumb {
 @page { size: A4 portrait; margin: 15mm; }
 @media print {
   .app-ui { display: none !important; }
-  .proposta-wrap { background: #fff; padding: 0; }
-  .documento { max-width: none; margin: 0; padding: 0; border-radius: 0; box-shadow: none; }
+  .folha-wrap { background: #fff; padding: 0; }
+  /* na impressão o papel JÁ é A4: nada de escala nem de altura medida */
+  .folha-palco { height: auto !important; max-width: none; }
+  .documento {
+    transform: none !important;
+    width: auto; max-width: none; margin: 0; padding: 0;
+    border-radius: 0; box-shadow: none;
+  }
   .quebra { break-before: page; }
   .nao-quebrar { break-inside: avoid; }
+}
+
+/* Celular: os dois botões no topo estouravam a largura e quebravam em
+ * duas linhas. Viram barra fixa no rodapé, no alcance do polegar. */
+@media (max-width: 600px) {
+  .folha-wrap { padding: 12px 12px calc(76px + env(safe-area-inset-bottom)); }
+  .folha-barra {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    margin: 0; max-width: none;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: var(--vidro, rgba(255, 255, 255, 0.86));
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--borda, rgba(0, 0, 0, 0.08));
+  }
+  .folha-barra__voltar { flex: 0 0 auto; padding-left: 14px; padding-right: 14px; }
+  .folha-barra__imprimir { flex: 1; text-align: center; }
+  .documento { border-radius: 4px; }
 }
 
 /* =====================================================================

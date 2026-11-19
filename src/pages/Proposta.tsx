@@ -5,10 +5,11 @@
  * O SVG do desenho entra inline e imprime vetorial.
  */
 import { useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { FolhaA4 } from "@/components/FolhaA4";
 import { Drawing2D } from "@/components/Drawing2D";
 import { Logo } from "@/components/Logo";
 import { MATERIAIS } from "@/domain/catalogo";
+import { ehSimulacao, linhaDeContato, podeNumerar, textoUtil } from "@/domain/documento";
 import { AMBIENTE_LABEL, FORMATO_LABEL } from "@/domain/presets";
 import { calcularOrcamento, rotuloTotal } from "@/domain/quote";
 import { brl, mmParaCmLabel } from "@/domain/units";
@@ -20,44 +21,40 @@ export function Proposta() {
   const garantirNumeroProposta = useProjectStore((s) => s.garantirNumeroProposta);
   const orc = useMemo(() => calcularOrcamento(projeto, tabela), [projeto, tabela]);
   const empresa = tabela.empresa;
+  const simulacao = ehSimulacao(projeto);
+  const numerar = podeNumerar(projeto, orc.completo);
 
   useEffect(() => {
-    // proposta sem material não é proposta — não consome número sequencial
-    if (orc.completo) garantirNumeroProposta();
-  }, [orc.completo, garantirNumeroProposta]);
+    // Só proposta de verdade consome número: precisa de pedra (senão não há
+    // produto) e de cliente (simulação queimando número fura a contagem da
+    // empresa — cinco brincadeiras no balcão e já era o 0005).
+    if (numerar) garantirNumeroProposta();
+  }, [numerar, garantirNumeroProposta]);
 
   if (!orc.completo) {
     return (
-      <div className="proposta-wrap">
-        <div className="proposta-bar app-ui">
-          <Link to="/editor" className="btn-ghost">← Voltar ao projeto</Link>
-        </div>
-        <article className="documento">
-          <h1>Proposta indisponível</h1>
-          <p>Selecione a pedra no projeto para gerar a proposta comercial.</p>
-        </article>
-      </div>
+      <FolhaA4>
+        <h1>Proposta indisponível</h1>
+        <p>Selecione a pedra no projeto para gerar a proposta comercial.</p>
+      </FolhaA4>
     );
   }
 
   const hoje = new Date();
   const validade = new Date(hoje.getTime() + empresa.validadeDias * 864e5);
-  const numero = projeto.numero ?? "—";
+  const numero = projeto.numero;
   const material = MATERIAIS.find((m) => m.id === projeto.material?.id);
-  const contato = [empresa.cnpj && `CNPJ ${empresa.cnpj}`, empresa.telefone, empresa.cidade]
-    .filter(Boolean)
-    .join(" · ");
+  const cnpj = textoUtil(empresa.cnpj);
+  const contato = linhaDeContato([cnpj && `CNPJ ${cnpj}`, empresa.telefone, empresa.cidade]);
+  const clienteNome = textoUtil(projeto.cliente?.nome);
+  const clienteContato = linhaDeContato([projeto.cliente?.telefone, projeto.cliente?.endereco]);
+  const prazoPagamento = linhaDeContato([
+    textoUtil(empresa.prazoEntrega) && `Prazo de entrega: ${empresa.prazoEntrega}`,
+    textoUtil(empresa.formaPagamento) && `Pagamento: ${empresa.formaPagamento}`,
+  ]);
 
   return (
-    <div className="proposta-wrap">
-      <div className="proposta-bar app-ui">
-        <Link to="/editor" className="btn-ghost">← Voltar ao projeto</Link>
-        <button className="btn-primario" onClick={() => window.print()}>
-          Imprimir / Salvar PDF
-        </button>
-      </div>
-
-      <article className="documento">
+    <FolhaA4 tarja={simulacao ? "Simulação — sem validade comercial" : undefined}>
         {/* cabeçalho com o logotipo; o nome da empresa (editável em
             Configurações) continua por extenso na linha de contato e no rodapé */}
         <header className="doc__head doc__head--marca">
@@ -67,19 +64,22 @@ export function Proposta() {
             {contato && <p>{contato}</p>}
           </div>
           <div className="doc__num">
-            <strong>Proposta nº {numero}</strong>
+            <strong>{numero ? `Proposta nº ${numero}` : "Proposta"}</strong>
             <p>Data: {hoje.toLocaleDateString("pt-BR")}</p>
             <p>Validade: {validade.toLocaleDateString("pt-BR")}</p>
           </div>
         </header>
 
         <section className="doc__bloco nao-quebrar">
-          <h2>Cliente</h2>
-          <p>
-            {projeto.cliente.nome || "—"}
-            {projeto.cliente.telefone ? ` · ${projeto.cliente.telefone}` : ""}
-          </p>
-          {projeto.cliente.endereco && <p>{projeto.cliente.endereco}</p>}
+          {/* bloco de cliente só existe se houver cliente: antes imprimia
+              um traço solto em toda simulação */}
+          {clienteNome && (
+            <>
+              <h2>Cliente</h2>
+              <p>{clienteNome}</p>
+              {clienteContato && <p>{clienteContato}</p>}
+            </>
+          )}
           <p>Projeto: <strong>{projeto.nome || "Projeto sem identificação"}</strong></p>
         </section>
 
@@ -106,7 +106,7 @@ export function Proposta() {
               <tr><th>Material</th><td>{material?.nome ?? "—"}</td></tr>
               <tr>
                 <th>Acabamento</th>
-                <td>{projeto.acabamentoBorda.tipo.replace("_", " ")}</td>
+                <td className="cap">{projeto.acabamentoBorda.tipo.replace("_", " ")}</td>
               </tr>
               {projeto.recortes.map((r) => (
                 <tr key={r.id}>
@@ -152,13 +152,9 @@ export function Proposta() {
         </section>
 
         <footer className="doc__rodape">
-          <p>
-            Prazo de entrega: {empresa.prazoEntrega} · Pagamento:{" "}
-            {empresa.formaPagamento}
-          </p>
-          <p>{empresa.nome}{empresa.cnpj ? ` · CNPJ ${empresa.cnpj}` : ""}</p>
+          {prazoPagamento && <p>{prazoPagamento}</p>}
+          <p>{linhaDeContato([empresa.nome, cnpj && `CNPJ ${cnpj}`])}</p>
         </footer>
-      </article>
-    </div>
+    </FolhaA4>
   );
 }

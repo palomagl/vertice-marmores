@@ -4,9 +4,10 @@
  * queima uma chapa inteira.
  */
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { FolhaA4 } from "@/components/FolhaA4";
 import { Drawing2D } from "@/components/Drawing2D";
 import { MATERIAIS } from "@/domain/catalogo";
+import { ehSimulacao } from "@/domain/documento";
 import { AMBIENTE_LABEL, FORMATO_LABEL } from "@/domain/presets";
 import { contornoBancada, geometriaRecorte } from "@/domain/geometry";
 import { mmParaCmLabel } from "@/domain/units";
@@ -18,6 +19,7 @@ export function OrdemServico() {
   const projeto = useProjectStore((s) => s.projeto);
   const empresa = useProjectStore((s) => s.tabela.empresa);
   const material = MATERIAIS.find((m) => m.id === projeto.material?.id);
+  const simulacao = ehSimulacao(projeto);
 
   const { segmentos } = useMemo(
     () => contornoBancada(projeto.bancada),
@@ -26,23 +28,26 @@ export function OrdemServico() {
 
   const hoje = new Date();
 
-  return (
-    <div className="proposta-wrap">
-      <div className="proposta-bar app-ui">
-        <Link to="/editor" className="btn-ghost">← Voltar ao projeto</Link>
-        <button className="btn-primario" onClick={() => window.print()}>
-          Imprimir / Salvar PDF
-        </button>
-      </div>
+  /**
+   * A OS não tem numeração própria: ela referencia a proposta que a
+   * originou. A oficina quer saber de qual orçamento veio a peça, e duas
+   * sequências só criam mais coisa pra conferir no telefone.
+   */
+  const referencia = simulacao
+    ? null
+    : projeto.numero
+      ? `ref. Proposta ${projeto.numero}`
+      : "sem proposta emitida";
 
-      <article className="documento">
+  return (
+    <FolhaA4 tarja={simulacao ? "Simulação — não produzir" : undefined}>
         <header className="doc__head">
           <div>
             <h1>Ordem de Serviço — Oficina</h1>
             <p>{empresa.nome}</p>
           </div>
           <div className="doc__num">
-            <strong>{projeto.numero ?? "S/N"}</strong>
+            {referencia && <strong>{referencia}</strong>}
             <p>{hoje.toLocaleDateString("pt-BR")}</p>
             <p>{projeto.nome || "Projeto sem identificação"}</p>
           </div>
@@ -158,7 +163,6 @@ export function OrdemServico() {
           <div><span>Conferido por</span><div className="doc__linha" /></div>
           <div><span>Data</span><div className="doc__linha" /></div>
         </section>
-      </article>
-    </div>
+    </FolhaA4>
   );
 }
